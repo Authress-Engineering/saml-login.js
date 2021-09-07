@@ -27,6 +27,9 @@
  }
  const version = getVersion();
  commander.version(version);
+
+ const package_metadata = require('./package.json');
+ package_metadata.version = version;
  
  /**
   * Build
@@ -35,8 +38,6 @@
  .command('setup')
  .description('Setup require build files for npm package.')
  .action(async () => {
-   let package_metadata = require('./package.json');
-   package_metadata.version = version;
    await fs.writeJson('./package.json', package_metadata, { spaces: 2 });
  
    console.log('Building package %s (%s)', package_metadata.name, version);
@@ -50,10 +51,8 @@
  .command('after_build')
  .description('Publishes git tags and reports failures.')
  .action(() => {
-   let package_metadata = require('./package.json');
    console.log('After build package %s (%s)', package_metadata.name, version);
    console.log('');
-   githubActionsRunner.PublishGitTag(version);
    githubActionsRunner.MergeDownstream('release/', 'main');
  });
  
