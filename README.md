@@ -1,9 +1,8 @@
 # Node SAML
+[![NPM](https://nodei.co/npm/saml-login.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/saml-login/)
+[![npm version](https://badge.fury.io/js/saml-login.svg)](http://badge.fury.io/js/saml-login)
 
-[![Build Status](https://github.com/authress/saml-login.js/workflows/Build%20Status/badge.svg)](https://github.com/authress/saml-login.js/actions?query=workflow%3ABuild%Status) [![GitHub version](https://badge.fury.io/gh/saml-login%2Fsaml-login.svg)](https://badge.fury.io/gh/saml-login%2Fsaml-login) [![npm version](https://badge.fury.io/js/saml-login.svg)](http://badge.fury.io/js/saml-login) [![NPM](https://nodei.co/npm/saml-login.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/saml-login/) [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
-
-This is a [SAML 2.0](http://en.wikipedia.org/wiki/SAML_2.0) authentication provider for Node.js.
-
+This is a [SAML 2.0](http://en.wikipedia.org/wiki/SAML_2.0) authentication provider for applications, service providers, and IdP for Node.js
 
 ## Installation
 ```sh
