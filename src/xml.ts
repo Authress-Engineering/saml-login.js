@@ -52,7 +52,6 @@ export const decryptXml = async (xml: string, decryptionKey: string | Buffer) =>
 const normalizeNewlines = (xml: string): string => {
   // we can use this utility before passing XML to `xml-crypto`
   // we are considered the XML processor and are responsible for newline normalization
-  // https://github.com/node-saml/passport-saml/issues/431#issuecomment-718132752
   return xml.replace(/\r\n?/g, "\n");
 };
 

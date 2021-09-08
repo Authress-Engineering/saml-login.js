@@ -1,10 +1,8 @@
 "use strict";
-import * as fs from "fs";
 import * as url from "url";
 import * as should from "should";
 import assert = require("assert");
 import { SAML } from "../src/saml";
-import { AuthenticateOptions, AuthorizeOptions } from "../src/passport-saml-types";
 import { assertRequired } from "../src/utility";
 import { FAKE_CERT, RequestWithUser } from "./types";
 
@@ -12,7 +10,7 @@ describe("SAML.js", function () {
   describe("get Urls", function () {
     let saml: SAML;
     let req: RequestWithUser;
-    let options: AuthenticateOptions & AuthorizeOptions;
+    let options: unknown;
     beforeEach(function () {
       saml = new SAML({
         entryPoint: "https://exampleidp.com/path?key=value",

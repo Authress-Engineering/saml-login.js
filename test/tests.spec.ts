@@ -339,7 +339,6 @@ describe("node-saml /", function () {
         };
         const samlObj = new SAML(samlConfig);
 
-        // Mock the SAML request being passed through Passport-SAML
         await samlObj.cacheProvider.saveAsync(requestId, new Date().toISOString());
 
         await assert.rejects(samlObj.validatePostResponseAsync(container), {
@@ -1107,7 +1106,6 @@ describe("node-saml /", function () {
 
         fakeClock = sinon.useFakeTimers(Date.parse("2014-05-28T00:13:09Z"));
 
-        // Mock the SAML request being passed through Passport-SAML
         await samlObj.cacheProvider.saveAsync(requestId, new Date().toISOString());
 
         const { profile, loggedOut } = await samlObj.validatePostResponseAsync(container);
@@ -1156,7 +1154,6 @@ describe("node-saml /", function () {
 
         fakeClock = sinon.useFakeTimers(Date.parse("2014-06-05T12:07:07.662Z"));
 
-        // Mock the SAML request being passed through Passport-SAML
         await samlObj.cacheProvider.saveAsync(requestId, new Date().toISOString());
 
         const { profile } = await samlObj.validatePostResponseAsync(container);
@@ -1181,7 +1178,6 @@ describe("node-saml /", function () {
 
         fakeClock = sinon.useFakeTimers(Date.parse("2014-06-05T12:07:07.662Z"));
 
-        // Mock the SAML request being passed through Passport-SAML
         await samlObj.cacheProvider.saveAsync(requestId, new Date().toISOString());
 
         try {
@@ -1208,7 +1204,6 @@ describe("node-saml /", function () {
 
         fakeClock = sinon.useFakeTimers(Date.parse("2014-06-05T12:07:07.662Z"));
 
-        // Mock the SAML request being passed through Passport-SAML
         await samlObj.cacheProvider.saveAsync(requestId, new Date().toISOString());
 
         const { profile } = await samlObj.validatePostResponseAsync(container);
@@ -1234,7 +1229,6 @@ describe("node-saml /", function () {
 
         fakeClock = sinon.useFakeTimers(Date.parse("2014-06-05T12:07:07.662Z"));
 
-        // Mock the SAML request being passed through Passport-SAML
         await samlObj.cacheProvider.saveAsync(requestId, new Date().toISOString());
 
         const { profile } = await samlObj.validatePostResponseAsync(container);
@@ -1260,7 +1254,6 @@ describe("node-saml /", function () {
           };
           const samlObj = new SAML(samlConfig);
 
-          // Mock the SAML request being passed through Passport-SAML
           await samlObj.cacheProvider.saveAsync(requestId, new Date().toISOString());
 
           await (() => new Promise((resolve) => setTimeout(resolve, 300)))();

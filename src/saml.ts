@@ -19,12 +19,10 @@ import {
   SamlIDPEntryConfig,
   SamlOptions,
   SamlConfig,
-  ServiceMetadataXML,
   XMLInput,
   XMLObject,
   XMLOutput,
 } from "./types";
-import { AuthenticateOptions, AuthorizeOptions } from "./passport-saml-types";
 import { assertRequired } from "./utility";
 import {
   buildXml2JsObject,
@@ -673,9 +671,6 @@ class SAML {
 
   // This function checks that the |currentNode| in the |fullXml| document contains exactly 1 valid
   //   signature of the |currentNode|.
-  //
-  // See https://github.com/bergie/passport-saml/issues/19 for references to some of the attack
-  //   vectors against SAML signature verification.
   validateSignature(fullXml: string, currentNode: Element, certs: string[]): boolean {
     const xpathSigQuery =
       ".//*[" +

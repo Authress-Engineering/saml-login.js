@@ -12,6 +12,10 @@
     "node-saml",
     "saml2",
     "saml2.0",
+    "saml-login",
+    "saml-authentication",
+    "saml-sp",
+    "saml-idp",
     "openid",
     "authentication",
     "service provider",
@@ -54,7 +58,6 @@
   "devDependencies": {
     "@types/mocha": "^8.2.2",
     "@types/node": "^14.14.44",
-    "@types/passport": "^1.0.6",
     "@types/qs": "^6.9.6",
     "@types/request": "^2.48.5",
     "@types/sinon": "^10.0.0",

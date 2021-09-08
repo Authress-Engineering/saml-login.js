@@ -16,10 +16,12 @@ npm install saml-login
 The SAML identity provider will redirect you to the URL provided by the `path` configuration.
 
 ```javascript
-const SamlLogin = require("saml-login");
+const samlLogin = require("saml-login");
 
-const options = {};
-const saml = new SamlLogin(options);
+const options = {
+
+};
+const idpAuthenticationUrl = await samlLogin.generateAuthenticationUrl(options);
 ```
 
 #### Config options details:
@@ -49,70 +51,18 @@ For more detailed instructions, see [ADFS documentation](docs/adfs/README.md).
 
 ## SAML Response Validation - NotBefore and NotOnOrAfter
 
-If the `NotBefore` or the `NotOnOrAfter` attributes are returned in the SAML response, Passport-SAML will validate them
+If the `NotBefore` or the `NotOnOrAfter` attributes are returned in the SAML response, SAML-Login will validate them
 against the current time +/- a configurable clock skew value. The default for the skew is 0s. This is to account for
-differences between the clock time on the client (Node server with Passport-SAML) and the server (Identity provider).
+differences between the clock time on the client (SAML-Login service provider) and the server (Identity provider).
 
 `NotBefore` and `NotOnOrAfter` can be part of either the `SubjectConfirmation` element, or within in the `Assertion/Conditions` element
 in the SAML response.
 
-## Subject confirmation validation
-
-When configured (turn `validateInResponseTo` to `true` in the Passport-SAML config), the `InResponseTo` attribute will be validated.
-Validation will succeed if Passport-SAML previously generated a SAML request with an id that matches the value of `InResponseTo`.
-
-Also note that `InResponseTo` is validated as an attribute of the top level `Response` element in the SAML response, as well
-as part of the `SubjectConfirmation` element.
-
-Previous request id's generated for SAML requests will eventually expire. This is controlled with the `requestIdExpirationPeriodMs` option
-passed into the Passport-SAML config. The default is 28,800,000 ms (8 hours). Once expired, a subsequent SAML response
-received with an `InResponseTo` equal to the expired id will not validate and an error will be returned.
-
-## Cache Provider
-
-When `InResponseTo` validation is turned on, Passport-SAML will store generated request ids used in SAML requests to the IdP. The implementation
-of how things are stored, checked to see if they exist, and eventually removed is from the Cache Provider used by Passport-SAML.
-
-The default implementation is a simple in-memory cache provider. For multiple server/process scenarios, this will not be sufficient as
-the server/process that generated the request id and stored in memory could be different than the server/process handling the
-SAML response. The `InResponseTo` could fail in this case erroneously.
-
-To support this scenario you can provide an implementation for a cache provider by providing an object with following functions:
-
-```javascript
-{
-    save: function(key, value, callback) {
-      // save the key with the optional value, invokes the callback with the value saves
-    },
-    get: function(key, callback) {
-      // invokes 'callback' and passes the value if found, null otherwise
-    },
-    remove: function(key, callback) {
-      // removes the key from the cache, invokes `callback` with the
-      // key removed, null if no key is removed
-    }
-}
-```
-
-The `callback` argument is a function in the style of normal Node callbacks:
-
-```
-function callback(err, result)
-{
-
-}
-```
-
-Provide an instance of an object which has these functions passed to the `cacheProvider` config option when using Passport-SAML.
-
 ## SLO (single logout)
-
-Passport-SAML has built in support for SLO including
 
 - Signature validation
 - IdP initiated and SP initiated logouts
-- Decryption of encrypted name identifiers in IdP initiated logout
-- `Redirect` and `POST` SAML Protocol Bindings
+
 
 ## ChangeLog
 
