@@ -27,7 +27,7 @@ export type XMLInput = XMLObject;
 
 export type XMLOutput = Record<string, unknown>;
 
-export interface AuthorizeRequestXML {
+export interface AuthorizeRequestXML extends Record<string, unknown> {
   "samlp:AuthnRequest": XMLInput;
 }
 
@@ -67,14 +67,6 @@ export interface ServiceMetadataXML {
   };
 }
 
-export type RacComparision = "exact" | "minimum" | "maximum" | "better";
-
-interface SamlScopingConfig {
-  idpList?: SamlIDPListConfig[];
-  proxyCount?: number;
-  requesterId?: string[] | string;
-}
-
 export interface AuthenticationOptions {
   /** The provider's SSO URL. Where to direct the user to login and verify their identity. */
   providerSingleSignOnUrl: string;
@@ -88,62 +80,22 @@ export interface AuthenticationOptions {
   applicationCallbackAssertionConsumerServiceUrl: string;
 }
 
-/**
- * The options required to use a SAML strategy
- * These may be provided by means of defaults specified in the constructor
- */
-export interface SamlOptions extends Partial<SamlSigningOptions>, MandatorySamlOptions {
-  // Core
-  callbackUrl?: string;
-  path: string;
-  protocol?: string;
-  host: string;
-  issuer: string;
-  decryptionPvk?: string | Buffer;
+export interface ValidationOptions {
+  /** The date of the request created, if it is not provided here, it will not be validated. */
+  requestTimestamp?: Date;
 
-  // Additional SAML behaviors
-  additionalParams: Record<string, string>;
-  additionalAuthorizeParams: Record<string, string>;
-  identifierFormat?: string | null;
-  acceptedClockSkewMs: number;
-  attributeConsumingServiceIndex?: string;
-  disableRequestedAuthnContext: boolean;
-  authnContext: string[];
-  forceAuthn: boolean;
-  skipRequestCompression: boolean;
-  authnRequestBinding?: string;
-  racComparison: RacComparision;
-  providerName?: string;
-  passive: boolean;
-  idpIssuer?: string;
-  audience?: string;
-  scoping?: SamlScopingConfig;
-  wantAssertionsSigned?: boolean;
-  maxAssertionAgeMs: number;
-  generateUniqueId: () => string;
+  /** Identity provider public certificate to use for verifying the signature of the SAML Response. */
+  providerCertificate: string | string[];
 
-  // InResponseTo Validation
-  validateInResponseTo: boolean;
-  requestIdExpirationPeriodMs: number;
+  /** Expected IdP Issuer found in SAML. */
+  expectedProviderIssuer?: string;
 
-  // Logout
-  logoutUrl: string;
-  additionalLogoutParams: Record<string, string>;
-  logoutCallbackUrl?: string;
+  /** Your application's entity Id, should be a fully qualified URL, and must match the application entityId specified to the IdP, used to verify the response.  */
+  applicationEntityId: string;
 
-  // extras
-  disableRequestAcsUrl: boolean;
+  /** Your application's private key used to decrypt assertions if they were requested to be signed on authentication. */
+  applicationPrivateKey?: string;
 }
-
-export interface StrategyOptions {
-  name?: string;
-  passReqToCallback?: boolean;
-}
-
-/**
- * These options are available for configuring a SAML strategy
- */
-export type SamlConfig = Partial<SamlOptions> & StrategyOptions & MandatorySamlOptions;
 
 export interface Profile {
   issuer?: string;
@@ -156,9 +108,6 @@ export interface Profile {
   mail?: string; // InCommon Attribute urn:oid:0.9.2342.19200300.100.1.3
   email?: string; // `mail` if not present in the assertion
   ["urn:oid:0.9.2342.19200300.100.1.3"]?: string;
-  getAssertionXml?(): string; // get the raw assertion XML
-  getAssertion?(): Record<string, unknown>; // get the assertion XML parsed as a JavaScript object
-  getSamlResponseXml?(): string; // get the raw SAML response XML
   [attributeName: string]: unknown; // arbitrary `AttributeValue`s
 }
 

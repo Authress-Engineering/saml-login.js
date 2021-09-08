@@ -21,11 +21,11 @@ describe("crypto.ts", function () {
     });
 
     it("should fail with falsy", function () {
-      assert.throws(() => keyToPEM(null as any));
+      assert.throws(() => keyToPEM(null as unknown));
     });
 
     it("should do nothing to non strings", function () {
-      const result = keyToPEM(1 as any);
+      const result = keyToPEM(1 as unknown);
       should.equal(result, 1);
     });
   });

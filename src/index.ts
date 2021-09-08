@@ -1,5 +1,4 @@
-import type { CacheItem, CacheProvider } from "./inmemory-cache-provider";
-import { SAML } from "./saml";
-import { MandatorySamlOptions, Profile, SamlConfig, SamlOptions } from "./types";
+import SamlLogin from "./saml";
+import { AuthenticationOptions, Profile, ValidationOptions } from "./types";
 
-export { SAML, CacheItem, CacheProvider, SamlOptions, MandatorySamlOptions, Profile, SamlConfig };
+export { SamlLogin, AuthenticationOptions, Profile, ValidationOptions };

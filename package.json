@@ -46,7 +46,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint --ext .ts \"**/*.ts\" --cache",
-    "test": "npm run prettier-check && npm run lint && npm run tsc && mocha"
+    "test": "npm run lint && tsc & mocha"
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.7",

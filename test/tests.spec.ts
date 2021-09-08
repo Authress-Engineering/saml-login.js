@@ -6,12 +6,10 @@ import { parseString } from "xml2js";
 import * as fs from "fs";
 import * as sinon from "sinon";
 import { SamlConfig } from "../src/types.js";
-import { RacComparision } from "../src/types.js";
 import * as should from "should";
 import assert = require("assert");
 import { FAKE_CERT, TEST_CERT } from "./types";
 import { signXmlResponse } from "../src/utility";
-import * as crypto from "../src/crypto";
 
 export const BAD_TEST_CERT =
   "MIIEOTCCAyGgAwIBAgIJAKZgJdKdCdL6MA0GCSqGSIb3DQEBBQUAMHAxCzAJBgNVBAYTAkFVMREwDwYDVQQIEwhWaWN0b3JpYTESMBAGA1UEBxMJTWVsYm91cm5lMSEwHwYDVQQKExhUYWJjb3JwIEhvbGRpbmdzIExpbWl0ZWQxFzAVBgNVBAMTDnN0cy50YWIuY29tLmF1MB4XDTE3MDUzMDA4NTQwOFoXDTI3MDUyODA4NTQwOFowcDELMAkGA1UEBhMCQVUxETAPBgNVBAgTCFZpY3RvcmlhMRIwEAYDVQQHEwlNZWxib3VybmUxITAfBgNVBAoTGFRhYmNvcnAgSG9sZGluZ3MgTGltaXRlZDEXMBUGA1UEAxMOc3RzLnRhYi5jb20uYXUwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQD0NuMcflq3rtupKYDf4a7lWmsXy66fYe9n8jB2DuLMakEJBlzn9j6B98IZftrilTq21VR7wUXROxG8BkN8IHY+l8X7lATmD28fFdZJj0c8Qk82eoq48faemth4fBMx2YrpnhU00jeXeP8dIIaJTPCHBTNgZltMMhphklN1YEPlzefJs3YD+Ryczy1JHbwETxt+BzO1JdjBe1fUTyl6KxAwWvtsNBURmQRYlDOk4GRgdkQnfxBuCpOMeOpV8wiBAi3h65Lab9C5avu4AJlA9e4qbOmWt6otQmgy5fiJVy6bH/d8uW7FJmSmePX9sqAWa9szhjdn36HHVQsfHC+IUEX7AgMBAAGjgdUwgdIwHQYDVR0OBBYEFN6z6cuxY7FTkg1S/lIjnS4x5ARWMIGiBgNVHSMEgZowgZeAFN6z6cuxY7FTkg1S/lIjnS4x5ARWoXSkcjBwMQswCQYDVQQGEwJBVTERMA8GA1UECBMIVmljdG9yaWExEjAQBgNVBAcTCU1lbGJvdXJuZTEhMB8GA1UEChMYVGFiY29ycCBIb2xkaW5ncyBMaW1pdGVkMRcwFQYDVQQDEw5zdHMudGFiLmNvbS5hdYIJAKZgJdKdCdL6MAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBAMi5HyvXgRa4+kKz3dk4SwAEXzeZRcsbeDJWVUxdb6a+JQxIoG7L9rSbd6yZvP/Xel5TrcwpCpl5eikzXB02/C0wZKWicNmDEBlOfw0Pc5ngdoh6ntxHIWm5QMlAfjR0dgTlojN4Msw2qk7cP1QEkV96e2BJUaqaNnM3zMvd7cfRjPNfbsbwl6hCCCAdwrALKYtBnjKVrCGPwO+xiw5mUJhZ1n6ZivTOdQEWbl26UO60J9ItiWP8VK0d0aChn326Ovt7qC4S3AgDlaJwcKe5Ifxl/UOWePGRwXj2UUuDWFhjtVmRntMmNZbe5yE8MkEvU+4/c6LqGwTCgDenRbK53Dgg";
@@ -215,53 +213,6 @@ describe("node-saml /", function () {
       }
     });
 
-    it("_generateLogoutRequest saves id and instant to cache", function (done) {
-      const expectedRequest = {
-        "samlp:LogoutRequest": {
-          $: {
-            "xmlns:samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
-            "xmlns:saml": "urn:oasis:names:tc:SAML:2.0:assertion",
-            //ID: '_85ba0a112df1ffb57805',
-            Version: "2.0",
-            //IssueInstant: '2014-05-29T03:32:23Z',
-            Destination: "foo",
-          },
-          "saml:Issuer": [
-            { _: "onelogin_saml", $: { "xmlns:saml": "urn:oasis:names:tc:SAML:2.0:assertion" } },
-          ],
-          "saml:NameID": [{ _: "bar", $: { Format: "foo" } }],
-          "saml2p:SessionIndex": [
-            { _: "session-id", $: { "xmlns:saml2p": "urn:oasis:names:tc:SAML:2.0:protocol" } },
-          ],
-        },
-      };
-
-      const samlObj = new SAML({ providerSingleSignOnUrl: "foo", cert: FAKE_CERT });
-      const cacheSaveSpy = sinon.spy(samlObj.cacheProvider, "saveAsync");
-      const logoutRequestPromise = samlObj._generateLogoutRequest({
-        nameIDFormat: "foo",
-        nameID: "bar",
-        sessionIndex: "session-id",
-      });
-
-      logoutRequestPromise.then(function (logoutRequest) {
-        parseString(logoutRequest, function (err, doc) {
-          try {
-            const id = doc["samlp:LogoutRequest"]["$"]["ID"];
-            const issueInstant = doc["samlp:LogoutRequest"]["$"]["IssueInstant"];
-
-            id.should.be.an.instanceOf(String);
-            issueInstant.should.be.an.instanceOf(String);
-            cacheSaveSpy.called.should.eql(true);
-            cacheSaveSpy.calledWith(id, issueInstant).should.eql(true);
-            done();
-          } catch (err2) {
-            done(err2);
-          }
-        });
-      });
-    });
-
     describe("validatePostResponse checks /", function () {
       let fakeClock: sinon.SinonFakeTimers;
 
@@ -405,22 +356,6 @@ describe("node-saml /", function () {
 
           const { profile } = await samlObj.validatePostResponseAsync(container);
           profile!.nameID!.should.startWith("ploer");
-        });
-        it("valid onelogin xml document should fail with no cert", function () {
-          const xml =
-            '<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="R689b0733bccca22a137e3654830312332940b1be" Version="2.0" IssueInstant="2014-05-28T00:16:08Z" Destination="{recipient}" InResponseTo="_a6fc46be84e1e3cf3c50"><saml:Issuer>https://app.onelogin.com/saml/metadata/371755</saml:Issuer><samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>' +
-            '<saml:Assertion xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="2.0" ID="pfx3b63c7be-fe86-62fd-8cb5-16ab6273efaa" IssueInstant="2014-05-28T00:16:08Z"><saml:Issuer>https://app.onelogin.com/saml/metadata/371755</saml:Issuer><ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:SignedInfo><ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/><ds:SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/><ds:Reference URI="#pfx3b63c7be-fe86-62fd-8cb5-16ab6273efaa"><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/><ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/></ds:Transforms><ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><ds:DigestValue>DCnPTQYBb1hKspbe6fg1U3q8xn4=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>e0+aFomA0+JAY0f9tKqzIuqIVSSw7LiFUsneEDKPBWdiTz1sMdgr/2y1e9+rjaS2mRmCi/vSQLY3zTYz0hp6nJNU19+TWoXo9kHQyWT4KkeQL4Xs/gZ/AoKC20iHVKtpPps0IQ0Ml/qRoouSitt6Sf/WDz2LV/pWcH2hx5tv3xSw36hK2NQc7qw7r1mEXnvcjXReYo8rrVf7XHGGxNoRIEICUIi110uvsWemSXf0Z0dyb0FVYOWuSsQMDlzNpheADBifFO4UTfSEhFZvn8kVCGZUIwrbOhZ2d/+YEtgyuTg+qtslgfy4dwd4TvEcfuRzQTazeefprSFyiQckAXOjcw==</ds:SignatureValue><ds:KeyInfo><ds:X509Data><ds:X509Certificate>' +
-            TEST_CERT +
-            '</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature><saml:Subject><saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient">ploer@subspacesw.com</saml:NameID><saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer"><saml:SubjectConfirmationData NotOnOrAfter="2014-05-28T00:19:08Z" Recipient="{recipient}" InResponseTo="_a6fc46be84e1e3cf3c50"/></saml:SubjectConfirmation></saml:Subject><saml:Conditions NotBefore="2014-05-28T00:13:08Z" NotOnOrAfter="2014-05-28T00:19:08Z"><saml:AudienceRestriction><saml:Audience>{audience}</saml:Audience></saml:AudienceRestriction></saml:Conditions><saml:AuthnStatement AuthnInstant="2014-05-28T00:16:07Z" SessionNotOnOrAfter="2014-05-29T00:16:08Z" SessionIndex="_30a4af50-c82b-0131-f8b5-782bcb56fcaa"><saml:AuthnContext><saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport</saml:AuthnContextClassRef></saml:AuthnContext></saml:AuthnStatement></saml:Assertion>' +
-            "</samlp:Response>";
-          const base64xml = Buffer.from(xml).toString("base64");
-          const container = { SAMLResponse: base64xml };
-          try {
-            const samlObj = new SAML(noCertSamlConfig);
-          } catch (err: unknown) {
-            should.exist(err);
-            err!.message!.should.match(/cert is required/);
-          }
         });
 
         it("onelogin xml document with altered NameID should fail", async () => {
@@ -1047,34 +982,6 @@ describe("node-saml /", function () {
         Object.keys(additionalLogoutParams).should.have.length(1);
         additionalLogoutParams.should.containEql({ queryParam: "queryParamRuntimeValue" });
       });
-
-      it("should check the value of the option `racComparison`", function () {
-        assert.throws(
-          () => {
-            new SAML({
-              racComparison: "bad_value" as RacComparision,
-              cert: FAKE_CERT,
-            }).options;
-          },
-          { message: "racComparison must be one of ['exact', 'minimum', 'maximum', 'better']" }
-        );
-
-        const samlObjBadComparisonType = new SAML({
-          cert: FAKE_CERT,
-        });
-        should.equal(
-          samlObjBadComparisonType.options.racComparison,
-          "exact",
-          "the default value of the option `racComparison` must be exact"
-        );
-
-        const validComparisonTypes: RacComparision[] = ["exact", "minimum", "maximum", "better"];
-        let samlObjValidComparisonType: SAML;
-        validComparisonTypes.forEach(function (racComparison) {
-          samlObjValidComparisonType = new SAML({ racComparison, cert: FAKE_CERT });
-          should.equal(samlObjValidComparisonType.options.racComparison, racComparison);
-        });
-      });
     });
 
     describe("InResponseTo validation checks /", () => {
@@ -1108,14 +1015,13 @@ describe("node-saml /", function () {
 
         await samlObj.cacheProvider.saveAsync(requestId, new Date().toISOString());
 
-        const { profile, loggedOut } = await samlObj.validatePostResponseAsync(container);
+        const { profile } = await samlObj.validatePostResponseAsync(container);
         profile!.nameID!.should.startWith("ploer");
         const value = await samlObj.cacheProvider.getAsync(requestId);
         should.not.exist(value);
       });
 
       it("onelogin xml document without InResponseTo from request should fail", async () => {
-        const requestId = "_a6fc46be84e1e3cf3c50";
         const xml =
           '<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="R689b0733bccca22a137e3654830312332940b1be" Version="2.0" IssueInstant="2014-05-28T00:16:08Z" Destination="{recipient}" InResponseTo="_a6fc46be84e1e3cf3c50"><saml:Issuer>https://app.onelogin.com/saml/metadata/371755</saml:Issuer><samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>' +
           '<saml:Assertion xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="2.0" ID="pfx3b63c7be-fe86-62fd-8cb5-16ab6273efaa" IssueInstant="2014-05-28T00:16:08Z"><saml:Issuer>https://app.onelogin.com/saml/metadata/371755</saml:Issuer><ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:SignedInfo><ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/><ds:SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/><ds:Reference URI="#pfx3b63c7be-fe86-62fd-8cb5-16ab6273efaa"><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/><ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/></ds:Transforms><ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><ds:DigestValue>DCnPTQYBb1hKspbe6fg1U3q8xn4=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>e0+aFomA0+JAY0f9tKqzIuqIVSSw7LiFUsneEDKPBWdiTz1sMdgr/2y1e9+rjaS2mRmCi/vSQLY3zTYz0hp6nJNU19+TWoXo9kHQyWT4KkeQL4Xs/gZ/AoKC20iHVKtpPps0IQ0Ml/qRoouSitt6Sf/WDz2LV/pWcH2hx5tv3xSw36hK2NQc7qw7r1mEXnvcjXReYo8rrVf7XHGGxNoRIEICUIi110uvsWemSXf0Z0dyb0FVYOWuSsQMDlzNpheADBifFO4UTfSEhFZvn8kVCGZUIwrbOhZ2d/+YEtgyuTg+qtslgfy4dwd4TvEcfuRzQTazeefprSFyiQckAXOjcw==</ds:SignatureValue><ds:KeyInfo><ds:X509Data><ds:X509Certificate>' +
@@ -1697,131 +1603,6 @@ describe("node-saml /", function () {
       });
     });
   });
-  describe("validatePostRequest()", function () {
-    const signingKey: unknown = fs.readFileSync(__dirname + "/static/key.pem", "ascii");
-    const signingCert: unknown = fs.readFileSync(__dirname + "/static/cert.pem", "ascii");
-    let samlObj: SAML;
-
-    beforeEach(function () {
-      samlObj = new SAML({
-        cert: signingCert,
-      });
-    });
-
-    it("errors if bad xml", async function () {
-      const body = {
-        SAMLRequest: "asdf",
-      };
-      await assert.rejects(samlObj.validatePostRequestAsync(body), {
-        message: /Non-whitespace before first tag/,
-      });
-    });
-    it("errors if bad signature", async () => {
-      const body = {
-        SAMLRequest: fs.readFileSync(
-          __dirname + "/static/logout_request_with_bad_signature.xml",
-          "base64"
-        ),
-      };
-      await assert.rejects(samlObj.validatePostRequestAsync(body), {
-        message: "Invalid signature on documentElement",
-      });
-    });
-    it("returns profile for valid signature", async () => {
-      const body = {
-        SAMLRequest: fs.readFileSync(
-          __dirname + "/static/logout_request_with_good_signature.xml",
-          "base64"
-        ),
-      };
-      const { profile } = await samlObj.validatePostRequestAsync(body);
-      profile!.should.eql({
-        ID: "pfxd4d369e8-9ea1-780c-aff8-a1d11a9862a1",
-        issuer: "http://sp.example.com/demo1/metadata.php",
-        nameID: "ONELOGIN_f92cc1834efc0f73e9c09f482fce80037a6251e7",
-        nameIDFormat: "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
-      });
-    });
-    it("returns profile for valid signature including session index", async () => {
-      const body = {
-        SAMLRequest: fs.readFileSync(
-          __dirname + "/static/logout_request_with_session_index.xml",
-          "base64"
-        ),
-      };
-      const { profile } = await samlObj.validatePostRequestAsync(body);
-      profile!.should.eql({
-        ID: "pfxd4d369e8-9ea1-780c-aff8-a1d11a9862a1",
-        issuer: "http://sp.example.com/demo1/metadata.php",
-        nameID: "ONELOGIN_f92cc1834efc0f73e9c09f482fce80037a6251e7",
-        nameIDFormat: "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
-        sessionIndex: "1",
-      });
-    });
-    it("returns profile for valid signature with encrypted nameID", async () => {
-      const samlObj = new SAML({
-        cert: fs.readFileSync(__dirname + "/static/cert.pem", "ascii"),
-        decryptionPvk: fs.readFileSync(__dirname + "/static/key.pem", "ascii"),
-      });
-      const body = {
-        SAMLRequest: fs.readFileSync(
-          __dirname + "/static/logout_request_with_encrypted_name_id.xml",
-          "base64"
-        ),
-      };
-      const { profile } = await samlObj.validatePostRequestAsync(body);
-      profile!.should.eql({
-        ID: "pfx087316a5-2dfb-cc05-2ba9-b46751936ff5",
-        issuer: "http://sp.example.com/demo1/metadata.php",
-        nameID: "ONELOGIN_f92cc1834efc0f73e9c09f482fce80037a6251e7",
-        nameIDFormat: "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
-        sessionIndex: "1",
-      });
-    });
-
-    it("check conflicting profile fields with data from attributes", async () => {
-      const testSAMLObj = new SAML({ cert: signingCert, issuer: "okta" });
-      const xml =
-        '<Response xmlns="urn:oasis:names:tc:SAML:2.0:protocol" ID="response0">' +
-        '<saml2:Assertion xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion" Version="2.0">' +
-        "<saml:Issuer>http://idp.example.com/metadata.php</saml:Issuer>" +
-        "<saml2:AttributeStatement>" +
-        '<saml2:Attribute Name="attributeName" ' +
-        'NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified">' +
-        '<saml2:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema" ' +
-        'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' +
-        'xsi:type="xs:string"/>' +
-        "</saml2:Attribute>" +
-        '<saml2:Attribute Name="issuer" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">' +
-        '<saml2:AttributeValue xsi:type="xs:string">test</saml2:AttributeValue>' +
-        "</saml2:Attribute>" +
-        "</saml2:AttributeStatement>" +
-        "</saml2:Assertion>" +
-        "</Response>";
-      const signedXml = signXmlResponse(xml, { privateKey: signingKey });
-      const { profile } = await testSAMLObj.validatePostResponseAsync({
-        SAMLResponse: Buffer.from(signedXml).toString("base64"),
-      });
-
-      should(profile!.issuer).not.be.equal("test");
-    });
-  });
-
-  it("validatePostRequest errors for encrypted nameID with wrong decryptionPvk", async () => {
-    const samlObj = new SAML({
-      cert: fs.readFileSync(__dirname + "/static/cert.pem", "ascii"),
-      decryptionPvk: fs.readFileSync(__dirname + "/static/acme_tools_com.key", "ascii"),
-    });
-    const body = {
-      SAMLRequest: fs.readFileSync(
-        __dirname + "/static/logout_request_with_encrypted_name_id.xml",
-        "base64"
-      ),
-    };
-    await assert.rejects(samlObj.validatePostRequestAsync(body), {
-      message: "Invalid RSAES-OAEP padding.",
-    });
-  });
 
   it("errors if bad privateKey to requestToURL", async () => {
     const samlObj = new SAML({
@@ -1869,7 +1650,7 @@ describe("node-saml /", function () {
       beforeEach(function () {
         samlObj = new SAML({
           cert: fs.readFileSync(__dirname + "/static/acme_tools_com.cert", "ascii"),
-          idpIssuer: "http://localhost:20000/saml2/idp/metadata.php",
+          expectedProviderIssuer: "http://localhost:20000/saml2/idp/metadata.php",
         });
         this.request = Object.assign(
           {},
@@ -1886,8 +1667,8 @@ describe("node-saml /", function () {
         };
         await assert.rejects(samlObj.validateRedirectAsync(body, this.request.originalQuery));
       });
-      it("errors if idpIssuer is set and issuer is wrong", async function () {
-        samlObj.options.idpIssuer = "foo";
+      it("errors if expectedProviderIssuer is set and issuer is wrong", async function () {
+        samlObj.options.expectedProviderIssuer = "foo";
         await assert.rejects(
           samlObj.validateRedirectAsync(this.request, this.request.originalQuery),
           {
@@ -1932,7 +1713,7 @@ describe("node-saml /", function () {
       beforeEach(function () {
         samlObj = new SAML({
           cert: fs.readFileSync(__dirname + "/static/acme_tools_com.cert", "ascii"),
-          idpIssuer: "http://localhost:20000/saml2/idp/metadata.php",
+          expectedProviderIssuer: "http://localhost:20000/saml2/idp/metadata.php",
           validateInResponseTo: true,
         });
         this.request = Object.assign(
@@ -1949,8 +1730,8 @@ describe("node-saml /", function () {
         };
         await assert.rejects(samlObj.validateRedirectAsync(body, null));
       });
-      it("errors if idpIssuer is set and wrong issuer", async function () {
-        samlObj.options.idpIssuer = "foo";
+      it("errors if expectedProviderIssuer is set and wrong issuer", async function () {
+        samlObj.options.expectedProviderIssuer = "foo";
         await assert.rejects(
           samlObj.validateRedirectAsync(this.request, this.request.originalQuery),
           {

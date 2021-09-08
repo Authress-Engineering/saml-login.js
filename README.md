@@ -11,7 +11,7 @@ npm install saml-login
 
 ## Usage
 
-### Configure strategy
+### Generate Authentication URL
 
 The SAML identity provider will redirect you to the URL provided by the `path` configuration.
 
@@ -19,10 +19,33 @@ The SAML identity provider will redirect you to the URL provided by the `path` c
 const samlLogin = require("saml-login");
 
 const options = {
-  serviceCallbackUrl: 'https://callback.service.com', // After a successful login the signed assertion from the IdP will be sent here. The resource should return a 302 with a valid redirect to a UI for the user to navigate to.
-
+  /** The provider's SSO URL. Where to direct the user to login and verify their identity. */
+  providerSingleSignOnUrl: 'string',
+  /** A unique ID generated for the request which can be used to verify later that the response is valid. If not specified an ID will be generated automatically. */
+  authenticationRequestId: 'string',
+  /** The date of the request, later this date will be used to verify the response, if it is not provided here, it will automatically generated. */
+  requestTimestamp: new Date(),
+  /** Your application's entity Id, should be a fully qualified URL, and must match the application entityId specified to the IdP.  */
+  applicationEntityId: 'string',
+  /** Your application's ACS SSO callback URL and must match the one registered with the IdP. This URL will receive the response from the IdP and must return a 302. */
+  applicationCallbackAssertionConsumerServiceUrl: 'string',
 };
+
 const idpAuthenticationUrl = await samlLogin.generateAuthenticationUrl(options);
+```
+
+### Verify and Parse Login Response
+```javascript
+const options = {
+  /** Identity provider public certificate to use for verifying the signature of the SAML Response. */
+  providerCertificate: string,
+
+  /** Your application's entity Id, should be a fully qualified URL, and must match the application entityId specified to the IdP, used to verify the response.  */
+  applicationEntityId: string
+};
+
+const authenticationRequestId = await samlLogin.getAuthenticationRequestIdFromSamlAssertion(request.body);
+const { profile } = await samlLogin.validatePostResponse(options, request.body);
 ```
 
 #### Config options details:
@@ -41,7 +64,7 @@ const idpAuthenticationUrl = await samlLogin.generateAuthenticationUrl(options);
 - `forceAuthn`: if set to true, the initial SAML request from the service provider specifies that the IdP should force re-authentication of the user, even if they possess a valid session.
 
 - **Issuer Validation**
-- `idpIssuer`: if provided, then the IdP issuer will be validated for incoming Logout Requests/Responses. For ADFS this looks like `https://acme_tools.windows.net/deadbeef`
+- `expectedProviderIssuer`: if provided, then the IdP issuer will be validated for incoming Logout Requests/Responses. For ADFS this looks like `https://acme_tools.windows.net/deadbeef`
 - **Logout**
 - `additionalLogoutParams`: dictionary of additional query params to add to 'logout' requests
 - `logoutCallbackUrl`: The value with which to populate the `Location` attribute in the `SingleLogoutService` elements in the generated service provider metadata.
