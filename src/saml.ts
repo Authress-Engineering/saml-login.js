@@ -8,7 +8,6 @@ import {
   CertCallback,
   ErrorWithXmlStatus,
   Profile,
-  XMLInput,
   XMLObject,
   XMLOutput,
 } from "./types";
@@ -70,22 +69,22 @@ async function processValidlySignedPostRequest(
   }
 }
 
-async function processValidlySignedSamlLogout(
-  self: SAML,
-  doc: XMLOutput,
-  dom: Document
-): Promise<{ profile?: Profile | null; loggedOut?: boolean }> {
-  const response = doc.LogoutResponse;
-  const request = doc.LogoutRequest;
+// async function processValidlySignedSamlLogout(
+//   self: SAML,
+//   doc: XMLOutput,
+//   dom: Document
+// ): Promise<{ profile?: Profile | null; loggedOut?: boolean }> {
+//   const response = doc.LogoutResponse;
+//   const request = doc.LogoutRequest;
 
-  if (response) {
-    return { profile: null, loggedOut: true };
-  } else if (request) {
-    return await processValidlySignedPostRequest(self, doc, dom);
-  } else {
-    throw new Error("Unknown SAML response message");
-  }
-}
+//   if (response) {
+//     return { profile: null, loggedOut: true };
+//   } else if (request) {
+//     return await processValidlySignedPostRequest(self, doc, dom);
+//   } else {
+//     throw new Error("Unknown SAML response message");
+//   }
+// }
 
 async function promiseWithNameID(nameid: Node): Promise<NameID> {
   const format = xpath.selectAttributes(nameid, "@Format");
@@ -311,7 +310,7 @@ class SAML {
   //   return buildXmlBuilderObject(request, false);
   // }
 
-  async _requestToUrl(
+  private async _requestToUrl(
     request: string | null | undefined,
     response: string | null,
     operation: string,
@@ -431,266 +430,206 @@ class SAML {
     });
   }
 
-  async validatePostResponse(
-    container: Record<string, string>
-  ): Promise<{ profile?: Profile | null; loggedOut?: boolean }> {
-    let xml: string, doc: Document, inResponseTo: string | null;
-    try {
-      xml = Buffer.from(container.SAMLResponse, "base64").toString("utf8");
-      doc = parseDomFromString(xml);
+  async decodeLoginResponse(samlEncodedBody: string) : Promise<string> {
+    return authenticationRequestId;
+  }
 
-      if (!Object.prototype.hasOwnProperty.call(doc, "documentElement"))
-        throw new Error("SAMLResponse is not valid base64-encoded XML");
+  async validatePostResponse(container: Record<string, string>): Promise<{ profile?: Profile | null; authenticationRequest?: Record<string, unknown>; loggedOut?: boolean }> {
+    const xml = Buffer.from(container.SAMLResponse, "base64").toString("utf8");
+    const doc = parseDomFromString(xml);
 
-      const inResponseToNodes = xpath.selectAttributes(
-        doc,
-        "/*[local-name()='Response']/@InResponseTo"
-      );
+    if (!Object.prototype.hasOwnProperty.call(doc, "documentElement"))
+      throw new Error("SAMLResponse is not valid base64-encoded XML");
 
-      if (inResponseToNodes) {
-        inResponseTo = inResponseToNodes.length ? inResponseToNodes[0].nodeValue : null;
+    const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
+    if (inResponseToNodes) {
+      inResponseTo = inResponseToNodes.length ? inResponseToNodes[0].nodeValue : null;
 
-        await this.validateInResponseTo(inResponseTo);
+      if (nowMs > new Date(options.requestTimestamp).getTime() + options.requestIdExpirationPeriodMs) {
+        throw new Error("InResponseTo is not valid");
       }
-      const certs = await this.certsToCheck();
-      // Check if this document has a valid top-level signature
-      let validSignature = false;
-      if (this.validateSignature(xml, doc.documentElement, certs)) {
-        validSignature = true;
+    }
+    const certs = await this.certsToCheck();
+    // Check if this document has a valid top-level signature
+    let validSignature = false;
+    if (this.validateSignature(xml, doc.documentElement, certs)) {
+      validSignature = true;
+    }
+
+    const assertions = xpath.selectElements(doc, "/*[local-name()='Response']/*[local-name()='Assertion']");
+    const encryptedAssertions = xpath.selectElements(doc, "/*[local-name()='Response']/*[local-name()='EncryptedAssertion']");
+
+    if (assertions.length + encryptedAssertions.length > 1) {
+      // There's no reason I know of that we want to handle multiple assertions, and it seems like a
+      //   potential risk vector for signature scope issues, so treat this as an invalid signature
+      throw new Error("Invalid signature: multiple assertions");
+    }
+
+    if (assertions.length) {
+      if (!validSignature && !this.validateSignature(xml, assertions[0], certs)) {
+        throw new Error("Invalid signature");
       }
+      return await this.processValidlySignedAssertion(assertions[0].toString(), xml, inResponseTo!);
+    }
 
-      const assertions = xpath.selectElements(
-        doc,
-        "/*[local-name()='Response']/*[local-name()='Assertion']"
-      );
-      const encryptedAssertions = xpath.selectElements(
-        doc,
-        "/*[local-name()='Response']/*[local-name()='EncryptedAssertion']"
-      );
+    if (encryptedAssertions.length) {
+      options.decryptionPvk = assertRequired(options.decryptionPvk, "No decryption key for encrypted SAML response");
 
-      if (assertions.length + encryptedAssertions.length > 1) {
-        // There's no reason I know of that we want to handle multiple assertions, and it seems like a
-        //   potential risk vector for signature scope issues, so treat this as an invalid signature
-        throw new Error("Invalid signature: multiple assertions");
-      }
+      const encryptedAssertionXml = encryptedAssertions[0].toString();
 
-      if (assertions.length == 1) {
-        if (
-          (options.wantAssertionsSigned || !validSignature) &&
-          !this.validateSignature(xml, assertions[0], certs)
-        ) {
-          throw new Error("Invalid signature");
-        }
-        return await this.processValidlySignedAssertion(
-          assertions[0].toString(),
-          xml,
-          inResponseTo!
-        );
-      }
+      const decryptedXml = await decryptXml(encryptedAssertionXml, options.decryptionPvk);
+      const decryptedDoc = parseDomFromString(decryptedXml);
+      const decryptedAssertions = xpath.selectElements(decryptedDoc, "/*[local-name()='Assertion']");
+      if (decryptedAssertions.length != 1) throw new Error("Invalid EncryptedAssertion content");
 
-      if (encryptedAssertions.length == 1) {
-        options.decryptionPvk = assertRequired(
-          options.decryptionPvk,
-          "No decryption key for encrypted SAML response"
-        );
-
-        const encryptedAssertionXml = encryptedAssertions[0].toString();
-
-        const decryptedXml = await decryptXml(encryptedAssertionXml, options.decryptionPvk);
-        const decryptedDoc = parseDomFromString(decryptedXml);
-        const decryptedAssertions = xpath.selectElements(
-          decryptedDoc,
-          "/*[local-name()='Assertion']"
-        );
-        if (decryptedAssertions.length != 1) throw new Error("Invalid EncryptedAssertion content");
-
-        if (
-          (options.wantAssertionsSigned || !validSignature) &&
-          !this.validateSignature(decryptedXml, decryptedAssertions[0], certs)
-        ) {
-          throw new Error("Invalid signature from encrypted assertion");
-        }
-
-        return await this.processValidlySignedAssertion(
-          decryptedAssertions[0].toString(),
-          xml,
-          inResponseTo!
-        );
+      if (!validSignature && !this.validateSignature(decryptedXml, decryptedAssertions[0], certs)) {
+        throw new Error("Invalid signature from encrypted assertion");
       }
 
-      // If there's no assertion, fall back on xml2js response parsing for the status &
-      //   LogoutResponse code.
+      return await this.processValidlySignedAssertion(decryptedAssertions[0].toString(), xml, inResponseTo!);
+    }
 
-      const xmljsDoc = await parseXml2JsFromString(xml);
-      const response = xmljsDoc.Response;
-      if (response) {
-        const assertion = response.Assertion;
-        if (!assertion) {
-          const status = response.Status;
-          if (status) {
-            const statusCode = status[0].StatusCode;
+    // If there's no assertion, fall back on xml2js response parsing for the status & LogoutResponse code.
+
+    const xmlJsDoc = await parseXml2JsFromString(xml);
+    const response = xmlJsDoc.Response;
+    if (response) {
+      const assertion = response.Assertion;
+      if (!assertion) {
+        const status = response.Status;
+        if (status) {
+          const statusCode = status[0].StatusCode;
+          if (
+            statusCode &&
+            statusCode[0].$.Value === "urn:oasis:names:tc:SAML:2.0:status:Responder"
+          ) {
+            const nestedStatusCode = statusCode[0].StatusCode;
             if (
-              statusCode &&
-              statusCode[0].$.Value === "urn:oasis:names:tc:SAML:2.0:status:Responder"
+              nestedStatusCode &&
+              nestedStatusCode[0].$.Value === "urn:oasis:names:tc:SAML:2.0:status:NoPassive"
             ) {
-              const nestedStatusCode = statusCode[0].StatusCode;
-              if (
-                nestedStatusCode &&
-                nestedStatusCode[0].$.Value === "urn:oasis:names:tc:SAML:2.0:status:NoPassive"
-              ) {
-                if (!validSignature) {
-                  throw new Error("Invalid signature: NoPassive");
-                }
-                return { profile: null, loggedOut: false };
+              if (!validSignature) {
+                throw new Error("Invalid signature: NoPassive");
               }
+              return { profile: null, loggedOut: false };
             }
+          }
 
-            // Note that we're not requiring a valid signature before this logic -- since we are
-            //   throwing an error in any case, and some providers don't sign error results,
-            //   let's go ahead and give the potentially more helpful error.
-            if (statusCode && statusCode[0].$.Value) {
-              const msgType = statusCode[0].$.Value.match(/[^:]*$/)[0];
-              if (msgType != "Success") {
-                let msg = "unspecified";
-                if (status[0].StatusMessage) {
-                  msg = status[0].StatusMessage[0]._;
-                } else if (statusCode[0].StatusCode) {
-                  msg = statusCode[0].StatusCode[0].$.Value.match(/[^:]*$/)[0];
-                }
-                const statusXml = buildXml2JsObject("Status", status[0]);
-                throw new ErrorWithXmlStatus(
-                  "SAML provider returned " + msgType + " error: " + msg,
-                  statusXml
-                );
+          // Note that we're not requiring a valid signature before this logic -- since we are
+          //   throwing an error in any case, and some providers don't sign error results,
+          //   let's go ahead and give the potentially more helpful error.
+          if (statusCode && statusCode[0].$.Value) {
+            const msgType = statusCode[0].$.Value.match(/[^:]*$/)[0];
+            if (msgType != "Success") {
+              let msg = "unspecified";
+              if (status[0].StatusMessage) {
+                msg = status[0].StatusMessage[0]._;
+              } else if (statusCode[0].StatusCode) {
+                msg = statusCode[0].StatusCode[0].$.Value.match(/[^:]*$/)[0];
               }
+              const statusXml = buildXml2JsObject("Status", status[0]);
+              throw new ErrorWithXmlStatus(
+                "SAML provider returned " + msgType + " error: " + msg,
+                statusXml
+              );
             }
           }
         }
-        throw new Error("Missing SAML assertion");
-      } else {
-        if (!validSignature) {
-          throw new Error("Invalid signature: No response found");
-        }
-        const logoutResponse = xmljsDoc.LogoutResponse;
-        if (logoutResponse) {
-          return { profile: null, loggedOut: true };
-        } else {
-          throw new Error("Unknown SAML response message");
-        }
       }
-    } catch (err) {
-      console.debug("validatePostResponse resulted in an error: %s", err);
-      throw err;
+      throw new Error("Missing SAML assertion");
+    } else {
+      if (!validSignature) {
+        throw new Error("Invalid signature: No response found");
+      }
+      const logoutResponse = xmlJsDoc.LogoutResponse;
+      if (logoutResponse) {
+        return { profile: null, loggedOut: true };
+      } else {
+        throw new Error("Unknown SAML response message");
+      }
     }
   }
 
-  private async processValidlySignedAssertion(
-    xml: string,
-    samlResponseXml: string,
-    inResponseTo: string
-  ) {
+  private async processValidlySignedAssertion(xml: string, samlResponseXml: string, inResponseTo: string) {
     let msg;
     const nowMs = new Date().getTime();
     const profile = {} as Profile;
     const doc: XMLOutput = await parseXml2JsFromString(xml);
-    const parsedAssertion: XMLOutput = doc;
     const assertion: XMLOutput = doc.Assertion;
-    getInResponseTo: {
-      const issuer = assertion.Issuer;
-      if (issuer && issuer[0]._) {
-        profile.issuer = issuer[0]._;
-      }
 
-      if (inResponseTo) {
-        profile.inResponseTo = inResponseTo;
-      }
+    const issuer = assertion.Issuer;
+    if (issuer && issuer[0]._) {
+      profile.issuer = issuer[0]._;
+    }
 
-      const authnStatement = assertion.AuthnStatement;
-      if (authnStatement) {
-        if (authnStatement[0].$ && authnStatement[0].$.SessionIndex) {
-          profile.sessionIndex = authnStatement[0].$.SessionIndex;
+    if (inResponseTo) {
+      profile.inResponseTo = inResponseTo;
+    }
+
+    const authnStatement = assertion.AuthnStatement;
+    if (authnStatement) {
+      if (authnStatement[0].$ && authnStatement[0].$.SessionIndex) {
+        profile.sessionIndex = authnStatement[0].$.SessionIndex;
+      }
+    }
+
+    const subject = assertion.Subject;
+    let subjectConfirmation, confirmData;
+    if (subject) {
+      const nameID = subject[0].NameID;
+      if (nameID && nameID[0]._) {
+        profile.nameID = nameID[0]._;
+
+        if (nameID[0].$ && nameID[0].$.Format) {
+          profile.nameIDFormat = nameID[0].$.Format;
+          profile.nameQualifier = nameID[0].$.NameQualifier;
+          profile.spNameQualifier = nameID[0].$.SPNameQualifier;
         }
       }
 
-      const subject = assertion.Subject;
-      let subjectConfirmation, confirmData;
-      if (subject) {
-        const nameID = subject[0].NameID;
-        if (nameID && nameID[0]._) {
-          profile.nameID = nameID[0]._;
-
-          if (nameID[0].$ && nameID[0].$.Format) {
-            profile.nameIDFormat = nameID[0].$.Format;
-            profile.nameQualifier = nameID[0].$.NameQualifier;
-            profile.spNameQualifier = nameID[0].$.SPNameQualifier;
-          }
-        }
-
-        subjectConfirmation = subject[0].SubjectConfirmation
-          ? subject[0].SubjectConfirmation[0]
+      subjectConfirmation = subject[0].SubjectConfirmation
+        ? subject[0].SubjectConfirmation[0]
+        : null;
+      confirmData =
+        subjectConfirmation && subjectConfirmation.SubjectConfirmationData
+          ? subjectConfirmation.SubjectConfirmationData[0]
           : null;
-        confirmData =
-          subjectConfirmation && subjectConfirmation.SubjectConfirmationData
-            ? subjectConfirmation.SubjectConfirmationData[0]
-            : null;
-        if (subject[0].SubjectConfirmation && subject[0].SubjectConfirmation.length > 1) {
-          msg = "Unable to process multiple SubjectConfirmations in SAML assertion";
-          throw new Error(msg);
-        }
+      if (subject[0].SubjectConfirmation && subject[0].SubjectConfirmation.length > 1) {
+        msg = "Unable to process multiple SubjectConfirmations in SAML assertion";
+        throw new Error(msg);
+      }
 
-        if (subjectConfirmation) {
-          if (confirmData && confirmData.$) {
-            const subjectNotBefore = confirmData.$.NotBefore;
-            const subjectNotOnOrAfter = confirmData.$.NotOnOrAfter;
-            const maxTimeLimitMs = this.processMaxAgeAssertionTime(
-              options.maxAssertionAgeMs,
-              subjectNotOnOrAfter,
-              assertion.$.IssueInstant
-            );
+      if (subjectConfirmation) {
+        if (confirmData && confirmData.$) {
+          const subjectNotBefore = confirmData.$.NotBefore;
+          const subjectNotOnOrAfter = confirmData.$.NotOnOrAfter;
+          const maxTimeLimitMs = this.processMaxAgeAssertionTime(
+            options.maxAssertionAgeMs,
+            subjectNotOnOrAfter,
+            assertion.$.IssueInstant
+          );
 
-            const subjErr = this.checkTimestampsValidityError(
-              nowMs,
-              subjectNotBefore,
-              subjectNotOnOrAfter,
-              maxTimeLimitMs
-            );
-            if (subjErr) {
-              throw subjErr;
-            }
+          const subjErr = this.checkTimestampsValidityError(
+            nowMs,
+            subjectNotBefore,
+            subjectNotOnOrAfter,
+            maxTimeLimitMs
+          );
+          if (subjErr) {
+            throw subjErr;
           }
         }
       }
+    }
 
-      // Test to see that if we have a SubjectConfirmation InResponseTo that it matches
-      // the 'InResponseTo' attribute set in the Response
-      if (options.validateInResponseTo) {
-        if (subjectConfirmation) {
-          if (confirmData && confirmData.$) {
-            const subjectInResponseTo = confirmData.$.InResponseTo;
-            if (inResponseTo && subjectInResponseTo && subjectInResponseTo != inResponseTo) {
-              await this.cacheProvider.remove(inResponseTo);
-              throw new Error("InResponseTo is not valid");
-            } else if (subjectInResponseTo) {
-              let foundValidInResponseTo = false;
-              const result = await this.cacheProvider.get(subjectInResponseTo);
-              if (result) {
-                const createdAt = new Date(result);
-                if (nowMs < createdAt.getTime() + options.requestIdExpirationPeriodMs)
-                  foundValidInResponseTo = true;
-              }
-              await this.cacheProvider.remove(inResponseTo);
-              if (!foundValidInResponseTo) {
-                throw new Error("InResponseTo is not valid");
-              }
-              break getInResponseTo;
-            }
-          }
-        } else {
-          await this.cacheProvider.remove(inResponseTo);
-          break getInResponseTo;
+    // Test to see that if we have a SubjectConfirmation InResponseTo that it matches
+    // the 'InResponseTo' attribute set in the Response
+    if (subjectConfirmation && confirmData && confirmData.$) {
+      const subjectInResponseTo = confirmData.$.InResponseTo;
+      if (subjectInResponseTo) {
+        if (subjectInResponseTo != inResponseTo) {
+          throw new Error("InResponseTo is not valid");
         }
-      } else {
-        break getInResponseTo;
       }
     }
     const conditions = assertion.Conditions ? assertion.Conditions[0] : null;
@@ -777,11 +716,7 @@ class SAML {
       profile.email = profile.mail;
     }
 
-    profile.getAssertionXml = () => xml.toString();
-    profile.getAssertion = () => parsedAssertion;
-    profile.getSamlResponseXml = () => samlResponseXml;
-
-    return { profile, loggedOut: false };
+    return { profile, authenticationRequest, loggedOut: false };
   }
 
   private checkTimestampsValidityError(

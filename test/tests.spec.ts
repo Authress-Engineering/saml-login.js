@@ -22,7 +22,7 @@ describe("node-saml /", function () {
   describe("saml.js / ", function () {
     it("should throw an error if cert property is provided to saml constructor but is empty", function () {
       should(function () {
-        const strategy = new SAML({ cert: undefined as any });
+        const strategy = new SAML({ cert: undefined as unknown });
         typeof strategy.options.cert === "undefined";
       }).throw("cert is required");
     });
@@ -377,7 +377,7 @@ describe("node-saml /", function () {
         it("must have a cert to construct a SAML object", function () {
           try {
             new SAML(noCertSamlConfig);
-          } catch (err: any) {
+          } catch (err: unknown) {
             should.exist(err);
             err!.message!.should.match(/cert is required/);
           }
@@ -386,7 +386,7 @@ describe("node-saml /", function () {
         it("must have a valid cert to construct a SAML object", function () {
           try {
             new SAML(badCertSamlConfig);
-          } catch (err: any) {
+          } catch (err: unknown) {
             should.exist(err);
             err!.message!.should.match(/cert is required/);
           }
@@ -417,7 +417,7 @@ describe("node-saml /", function () {
           const container = { SAMLResponse: base64xml };
           try {
             const samlObj = new SAML(noCertSamlConfig);
-          } catch (err: any) {
+          } catch (err: unknown) {
             should.exist(err);
             err!.message!.should.match(/cert is required/);
           }
@@ -587,7 +587,7 @@ describe("node-saml /", function () {
           try {
             await samlObj.validatePostResponseAsync(container);
             should.not.exist(true);
-          } catch (err: any) {
+          } catch (err: unknown) {
             should.exist(err);
             err!.should.eql(errorToReturn);
           }
@@ -627,7 +627,7 @@ describe("node-saml /", function () {
           const container = { SAMLResponse: base64xml };
           const samlObj = new SAML({ cert: signingCert });
           const { profile } = await samlObj.validatePostResponseAsync(container);
-          const eptid = profile!["urn:oid:1.3.6.1.4.1.5923.1.1.1.10"] as any;
+          const eptid = profile!["urn:oid:1.3.6.1.4.1.5923.1.1.1.10"] as unknown;
           const nameid = eptid["NameID"][0];
           nameid._.should.eql(nameid_opaque_string);
           nameid.$.NameQualifier.should.equal(nameQualifier);
@@ -810,7 +810,7 @@ describe("node-saml /", function () {
     });
 
     describe("_getAdditionalParams checks /", function () {
-      it("should not pass any additional params by default", function () {
+      it("should not pass unknown additional params by default", function () {
         const samlConfig = {
           providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: FAKE_CERT,
@@ -823,7 +823,7 @@ describe("node-saml /", function () {
         });
       });
 
-      it("should not pass any additional params by default apart from the RelayState", function () {
+      it("should not pass unknown additional params by default apart from the RelayState", function () {
         const samlConfig = {
           providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: FAKE_CERT,
@@ -1183,7 +1183,7 @@ describe("node-saml /", function () {
         try {
           const { profile } = await samlObj.validatePostResponseAsync(container);
           should.not.exist(profile);
-        } catch (err: any) {
+        } catch (err: unknown) {
           err!.message!.should.eql("InResponseTo is missing from response");
         }
       });
@@ -1261,7 +1261,7 @@ describe("node-saml /", function () {
           should.not.exist(value);
         });
 
-        it("should expire many cached request ids after the time", async () => {
+        it("should expire munknown cached request ids after the time", async () => {
           const expiredRequestId1 = "_dfab47d5d46374cd4b71";
           const expiredRequestId2 = "_dfab47d5d46374cd4b72";
           const requestId = "_dfab47d5d46374cd4b73";
@@ -1698,8 +1698,8 @@ describe("node-saml /", function () {
     });
   });
   describe("validatePostRequest()", function () {
-    const signingKey: any = fs.readFileSync(__dirname + "/static/key.pem", "ascii");
-    const signingCert: any = fs.readFileSync(__dirname + "/static/cert.pem", "ascii");
+    const signingKey: unknown = fs.readFileSync(__dirname + "/static/key.pem", "ascii");
+    const signingCert: unknown = fs.readFileSync(__dirname + "/static/cert.pem", "ascii");
     let samlObj: SAML;
 
     beforeEach(function () {

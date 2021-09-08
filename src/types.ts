@@ -25,7 +25,7 @@ export type XMLObject = {
 
 export type XMLInput = XMLObject;
 
-export type XMLOutput = Record<string, any>;
+export type XMLOutput = Record<string, unknown>;
 
 export interface AuthorizeRequestXML {
   "samlp:AuthnRequest": XMLInput;

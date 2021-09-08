@@ -46,7 +46,7 @@ export const xpath = {
     selectXPath(elementsXPathTypeGuard, node, xpath),
 };
 
-export const decryptXml = async (xml: string, decryptionKey: string | Buffer) =>
+export const decryptXml = async (xml: string, decryptionKey: string | Buffer) : Promise<string | Error> =>
   util.promisify(xmlEnc.decrypt).bind(xmlEnc)(xml, { key: decryptionKey });
 
 const normalizeNewlines = (xml: string): string => {
