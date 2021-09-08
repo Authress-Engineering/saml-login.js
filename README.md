@@ -19,6 +19,7 @@ The SAML identity provider will redirect you to the URL provided by the `path` c
 const samlLogin = require("saml-login");
 
 const options = {
+  serviceCallbackUrl: 'https://callback.service.com', // After a successful login the signed assertion from the IdP will be sent here. The resource should return a 302 with a valid redirect to a UI for the user to navigate to.
 
 };
 const idpAuthenticationUrl = await samlLogin.generateAuthenticationUrl(options);
@@ -28,7 +29,7 @@ const idpAuthenticationUrl = await samlLogin.generateAuthenticationUrl(options);
 
 - **Core**
 - `callbackUrl`: full callbackUrl (overrides path/protocol if supplied)
-- `entryPoint`: identity provider entrypoint (is required to be spec-compliant when the request is signed)
+- `providerSingleSignOnUrl`: identity provider providerSingleSignOnUrl (is required to be spec-compliant when the request is signed)
 - `issuer`: issuer string to supply to identity provider
 - `audience`: expected saml response Audience (if not provided, Audience won't be verified)
 - `cert`: the IDP's public signing certificate used to validate the signatures of the incoming SAML Responses, see [Security and signatures](#security-and-signatures)
@@ -37,9 +38,7 @@ const idpAuthenticationUrl = await samlLogin.generateAuthenticationUrl(options);
 - **Additional SAML behaviors**
 - `additionalParams`: dictionary of additional query params to add to all requests; if an object with this key is passed to `authenticate`, the dictionary of additional query params will be appended to those present on the returned URL, overriding any specified by initialization options' additional parameters (`additionalParams`, `additionalAuthorizeParams`, and `additionalLogoutParams`)
 - `additionalAuthorizeParams`: dictionary of additional query params to add to 'authorize' requests
-- `identifierFormat`: optional name identifier format to request from identity provider (default: `urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified`)
 - `forceAuthn`: if set to true, the initial SAML request from the service provider specifies that the IdP should force re-authentication of the user, even if they possess a valid session.
-- `providerName`: optional human-readable name of the requester for use by the presenter's user agent or the identity provider
 
 - **Issuer Validation**
 - `idpIssuer`: if provided, then the IdP issuer will be validated for incoming Logout Requests/Responses. For ADFS this looks like `https://acme_tools.windows.net/deadbeef`

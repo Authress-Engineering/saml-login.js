@@ -1,9 +1,9 @@
 import * as util from "util";
 import * as xmlCrypto from "xml-crypto";
-import * as xmlenc from "xml-encryption";
+import * as xmlEnc from "xml-encryption";
 import * as xmldom from "@xmldom/xmldom";
 import * as xml2js from "xml2js";
-import * as xmlbuilder from "xmlbuilder";
+import * as xmsBuilder from "xmlbuilder";
 import { isValidSamlSigningOptions, SamlSigningOptions } from "./types";
 import * as algorithms from "./algorithms";
 
@@ -47,7 +47,7 @@ export const xpath = {
 };
 
 export const decryptXml = async (xml: string, decryptionKey: string | Buffer) =>
-  util.promisify(xmlenc.decrypt).bind(xmlenc)(xml, { key: decryptionKey });
+  util.promisify(xmlEnc.decrypt).bind(xmlEnc)(xml, { key: decryptionKey });
 
 const normalizeNewlines = (xml: string): string => {
   // we can use this utility before passing XML to `xml-crypto`
@@ -141,7 +141,7 @@ export const parseDomFromString = (xml: string): Document => {
   return new xmldom.DOMParser().parseFromString(xml);
 };
 
-export const parseXml2JsFromString = async (xml: string | Buffer): Promise<any> => {
+export const parseXml2JsFromString = async (xml: string | Buffer): Promise<unknown> => {
   const parserConfig = {
     explicitRoot: true,
     explicitCharkey: true,
@@ -151,7 +151,7 @@ export const parseXml2JsFromString = async (xml: string | Buffer): Promise<any> 
   return parser.parseStringPromise(xml);
 };
 
-export const buildXml2JsObject = (rootName: string, xml: any): string => {
+export const buildXml2JsObject = (rootName: string, xml: unknown): string => {
   const builderOpts = {
     rootName,
     headless: true,
@@ -159,7 +159,7 @@ export const buildXml2JsObject = (rootName: string, xml: any): string => {
   return new xml2js.Builder(builderOpts).buildObject(xml);
 };
 
-export const buildXmlBuilderObject = (xml: Record<string, any>, pretty: boolean): string => {
+export const buildXmlBuilderObject = (xml: Record<string, unknown>, pretty: boolean): string => {
   const options = pretty ? { pretty: true, indent: "  ", newline: "\n" } : {};
-  return xmlbuilder.create(xml).end(options);
+  return xmsBuilder.create(xml).end(options);
 };

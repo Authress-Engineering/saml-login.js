@@ -46,7 +46,7 @@ describe("node-saml /", function () {
           },
         };
 
-        const samlObj = new SAML({ entryPoint: "foo", cert: FAKE_CERT });
+        const samlObj = new SAML({ providerSingleSignOnUrl: "foo", cert: FAKE_CERT });
         const logoutRequestPromise = samlObj._generateLogoutRequest({
           nameIDFormat: "foo",
           nameID: "bar",
@@ -101,7 +101,7 @@ describe("node-saml /", function () {
           },
         };
 
-        const samlObj = new SAML({ entryPoint: "foo", cert: FAKE_CERT });
+        const samlObj = new SAML({ providerSingleSignOnUrl: "foo", cert: FAKE_CERT });
         const logoutRequestPromise = samlObj._generateLogoutRequest({
           nameIDFormat: "foo",
           nameID: "bar",
@@ -151,7 +151,7 @@ describe("node-saml /", function () {
         },
       };
 
-      const samlObj = new SAML({ entryPoint: "foo", cert: FAKE_CERT });
+      const samlObj = new SAML({ providerSingleSignOnUrl: "foo", cert: FAKE_CERT });
       const logoutRequest = samlObj._generateLogoutResponse({ ID: "quux" });
       parseString(logoutRequest, function (err, doc) {
         try {
@@ -187,7 +187,7 @@ describe("node-saml /", function () {
           },
         };
 
-        const samlObj = new SAML({ entryPoint: "foo", cert: FAKE_CERT });
+        const samlObj = new SAML({ providerSingleSignOnUrl: "foo", cert: FAKE_CERT });
         const logoutRequestPromise = samlObj._generateLogoutRequest({
           nameIDFormat: "foo",
           nameID: "bar",
@@ -236,7 +236,7 @@ describe("node-saml /", function () {
         },
       };
 
-      const samlObj = new SAML({ entryPoint: "foo", cert: FAKE_CERT });
+      const samlObj = new SAML({ providerSingleSignOnUrl: "foo", cert: FAKE_CERT });
       const cacheSaveSpy = sinon.spy(samlObj.cacheProvider, "saveAsync");
       const logoutRequestPromise = samlObj._generateLogoutRequest({
         nameIDFormat: "foo",
@@ -333,7 +333,7 @@ describe("node-saml /", function () {
         const base64xml = Buffer.from(xml).toString("base64");
         const container = { SAMLResponse: base64xml };
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: TEST_CERT,
           validateInResponseTo: true,
         };
@@ -363,14 +363,14 @@ describe("node-saml /", function () {
         });
 
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: TEST_CERT,
         };
         const noCertSamlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
         } as SamlConfig;
         const badCertSamlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: BAD_TEST_CERT,
         };
 
@@ -511,7 +511,7 @@ describe("node-saml /", function () {
 
         it("multiple certs should validate with one of the certs", async () => {
           const multiCertSamlConfig = {
-            entryPoint: samlConfig.entryPoint,
+            providerSingleSignOnUrl: samlConfig.providerSingleSignOnUrl,
             cert: [ALT_TEST_CERT, samlConfig.cert],
           };
           const xml =
@@ -529,7 +529,7 @@ describe("node-saml /", function () {
 
         it("cert as a function should validate with the returned cert", async () => {
           const functionCertSamlConfig: SamlConfig = {
-            entryPoint: samlConfig.entryPoint,
+            providerSingleSignOnUrl: samlConfig.providerSingleSignOnUrl,
             cert: function (callback) {
               callback(null, samlConfig.cert);
             },
@@ -549,7 +549,7 @@ describe("node-saml /", function () {
 
         it("cert as a function should validate with one of the returned certs", async () => {
           const functionMultiCertSamlConfig: SamlConfig = {
-            entryPoint: samlConfig.entryPoint,
+            providerSingleSignOnUrl: samlConfig.providerSingleSignOnUrl,
             cert: function (callback) {
               callback(null, [ALT_TEST_CERT, samlConfig.cert]);
             },
@@ -570,7 +570,7 @@ describe("node-saml /", function () {
         it("cert as a function should return an error if the cert function returns an error", async () => {
           const errorToReturn = new Error("test");
           const functionErrorCertSamlConfig: SamlConfig = {
-            entryPoint: samlConfig.entryPoint,
+            providerSingleSignOnUrl: samlConfig.providerSingleSignOnUrl,
             cert: function (callback) {
               callback(errorToReturn);
             },
@@ -707,7 +707,7 @@ describe("node-saml /", function () {
 
       it("acme_tools request signed with sha256", async () => {
         const samlConfig: SamlConfig = {
-          entryPoint: "https://adfs.acme_tools.com/adfs/ls/",
+          providerSingleSignOnUrl: "https://adfs.acme_tools.com/adfs/ls/",
           issuer: "acme_tools_com",
           callbackUrl: "https://relyingparty/adfs/postResponse",
           privateKey: fs.readFileSync(__dirname + "/static/acme_tools_com.key", "utf-8"),
@@ -734,7 +734,7 @@ describe("node-saml /", function () {
 
       it("acme_tools request not signed if missing entry point", async () => {
         const samlConfig: SamlConfig = {
-          entryPoint: "",
+          providerSingleSignOnUrl: "",
           issuer: "acme_tools_com",
           callbackUrl: "https://relyingparty/adfs/postResponse",
           privateKey: fs.readFileSync(__dirname + "/static/acme_tools_com.key", "utf-8"),
@@ -753,12 +753,12 @@ describe("node-saml /", function () {
         const request =
           '<?xml version=\\"1.0\\"?><samlp:AuthnRequest xmlns:samlp=\\"urn:oasis:names:tc:SAML:2.0:protocol\\" ID=\\"_ea40a8ab177df048d645\\" Version=\\"2.0\\" IssueInstant=\\"2017-08-22T19:30:01.363Z\\" ProtocolBinding=\\"urn:oasis:names$tc:SAML:2.0:bindings:HTTP-POST\\" AssertionConsumerServiceURL=\\"https://example.com/login/callback\\" Destination=\\"https://www.example.com\\"><saml:Issuer xmlns:saml=\\"urn:oasis:names:tc:SAML:2.0:assertion\\">onelogin_saml</saml:Issuer><s$mlp:NameIDPolicy xmlns:samlp=\\"urn:oasis:names:tc:SAML:2.0:protocol\\" Format=\\"urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\\" AllowCreate=\\"true\\"/><samlp:RequestedAuthnContext xmlns:samlp=\\"urn:oasis:names:tc:SAML:2.0:protoc$l\\" Comparison=\\"exact\\"><saml:AuthnContextClassRef xmlns:saml=\\"urn:oasis:names:tc:SAML:2.0:assertion\\">urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport</saml:AuthnContextClassRef></samlp:RequestedAuthnContext></samlp$AuthnRequest>';
         await assert.rejects(samlObj._requestToUrlAsync(request, null, "authorize", {}), {
-          message: "entryPoint is required",
+          message: "providerSingleSignOnUrl is required",
         });
       });
       it("acme_tools request signed with sha1", async () => {
         const samlConfig: SamlConfig = {
-          entryPoint: "https://adfs.acme_tools.com/adfs/ls/",
+          providerSingleSignOnUrl: "https://adfs.acme_tools.com/adfs/ls/",
           issuer: "acme_tools_com",
           callbackUrl: "https://relyingparty/adfs/postResponse",
           privateKey: fs.readFileSync(__dirname + "/static/acme_tools_com.key", "utf-8"),
@@ -783,7 +783,7 @@ describe("node-saml /", function () {
       });
       it("acme_tools request signed with sha1 when using privateKey", async () => {
         const samlConfig: SamlConfig = {
-          entryPoint: "https://adfs.acme_tools.com/adfs/ls/",
+          providerSingleSignOnUrl: "https://adfs.acme_tools.com/adfs/ls/",
           issuer: "acme_tools_com",
           callbackUrl: "https://relyingparty/adfs/postResponse",
           privateKey: fs.readFileSync(__dirname + "/static/acme_tools_com.key", "utf-8"),
@@ -812,7 +812,7 @@ describe("node-saml /", function () {
     describe("_getAdditionalParams checks /", function () {
       it("should not pass any additional params by default", function () {
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: FAKE_CERT,
         };
         const samlObj = new SAML(samlConfig);
@@ -825,7 +825,7 @@ describe("node-saml /", function () {
 
       it("should not pass any additional params by default apart from the RelayState", function () {
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: FAKE_CERT,
         };
         const samlObj = new SAML(samlConfig);
@@ -840,7 +840,7 @@ describe("node-saml /", function () {
 
       it("should only allow RelayState to be a string", function () {
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: FAKE_CERT,
         };
         const samlObj = new SAML(samlConfig);
@@ -857,7 +857,7 @@ describe("node-saml /", function () {
 
       it("should pass additional params with all operations if set in additionalParams", function () {
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           additionalParams: {
             queryParam: "queryParamValue",
           },
@@ -874,7 +874,7 @@ describe("node-saml /", function () {
 
       it('should pass additional params with "authorize" operations if set in additionalAuthorizeParams', function () {
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           additionalAuthorizeParams: {
             queryParam: "queryParamValue",
           },
@@ -892,7 +892,7 @@ describe("node-saml /", function () {
 
       it('should pass additional params with "logout" operations if set in additionalLogoutParams', function () {
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           additionalLogoutParams: {
             queryParam: "queryParamValue",
           },
@@ -910,7 +910,7 @@ describe("node-saml /", function () {
 
       it("should merge additionalLogoutParams and additionalAuthorizeParams with additionalParams", function () {
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           additionalParams: {
             queryParam1: "queryParamValue",
           },
@@ -941,7 +941,7 @@ describe("node-saml /", function () {
 
       it("should merge run-time params additionalLogoutParams and additionalAuthorizeParams with additionalParams", function () {
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           additionalParams: {
             queryParam1: "queryParamValue",
           },
@@ -987,7 +987,7 @@ describe("node-saml /", function () {
 
       it("should prioritize additionalLogoutParams and additionalAuthorizeParams over additionalParams", function () {
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           additionalParams: {
             queryParam: "queryParamValue",
           },
@@ -1012,7 +1012,7 @@ describe("node-saml /", function () {
 
       it("should prioritize run-time params over all other params", function () {
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           additionalParams: {
             queryParam: "queryParamValue",
           },
@@ -1098,7 +1098,7 @@ describe("node-saml /", function () {
         const container = { SAMLResponse: base64xml };
 
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: TEST_CERT,
           validateInResponseTo: true,
         };
@@ -1126,7 +1126,7 @@ describe("node-saml /", function () {
         const container = { SAMLResponse: base64xml };
 
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: TEST_CERT,
           validateInResponseTo: true,
         };
@@ -1146,7 +1146,7 @@ describe("node-saml /", function () {
         const container = { SAMLResponse: base64xml };
 
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: "MIIC7TCCAdmgAwIBAgIQuIdqos+9yKBC4oygbhtdfzAJBgUrDgMCHQUAMBIxEDAOBgNVBAMTB1Rlc3RTVFMwHhcNMTQwNDE2MTIyMTEwWhcNMzkxMjMxMjM1OTU5WjASMRAwDgYDVQQDEwdUZXN0U1RTMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmhReamVYbeOWwrrAvHPvS9KKBwv4Tj7wOSGDXbNgfjhSvVyXsnpYRcuoJkvE8b9tCjFTbXCfbhnaVrpoXaWFtP1YvUIZvCJGdOOTXltMNDlNIaFmsIsomza8IyOHXe+3xHWVtxO8FG3qnteSkkVIQuAvBqpPfQtxrXCZOlbQZm7q69QIQ64JvLJfRwHN1EywMBVwbJgrV8gBdE3RITI76coSOK13OBTlGtB0kGKLDrF2JW+5mB+WnFR7GlXUj+V0R9WStBomVipJEwr6Q3fU0deKZ5lLw0+qJ0T6APInwN5TIN/AbFCHd51aaf3zEP+tZacQ9fbZqy9XBAtL2pCAJQIDAQABo0cwRTBDBgNVHQEEPDA6gBDECazhZ8Ar+ULXb0YTs5MvoRQwEjEQMA4GA1UEAxMHVGVzdFNUU4IQuIdqos+9yKBC4oygbhtdfzAJBgUrDgMCHQUAA4IBAQAioMSOU9QFw+yhVxGUNK0p/ghVsHnYdeOE3vSRhmFPsetBt8S35sI4QwnQNiuiEYqp++FabiHgePOiqq5oeY6ekJik1qbs7fgwnaQXsxxSucHvc4BU81x24aKy6jeJzxmFxo3mh6y/OI1peCMSH48iUzmhnoSulp0+oAs3gMEFI0ONbgAA/XoAHaVEsrPj10i3gkztoGdpH0DYUe9rABOJxX/3mNF+dCVJG7t7BoSlNAWlSDErKciNNax1nBskFqNWNIKzUKBIb+GVKkIB2QpATMQB6Oe7inUdT9kkZ/Q7oPBATZk+3mFsIoWr8QRFSqvToOhun7EY2/VtuiV1d932",
           validateInResponseTo: true,
         };
@@ -1170,7 +1170,7 @@ describe("node-saml /", function () {
         const container = { SAMLResponse: base64xml };
 
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: "MIICrjCCAZYCCQDWybyUsLVkXzANBgkqhkiG9w0BAQsFADAZMRcwFQYDVQQDFA5hY21lX3Rvb2xzLmNvbTAeFw0xNTA4MTgwODQ3MzZaFw0yNTA4MTcwODQ3MzZaMBkxFzAVBgNVBAMUDmFjbWVfdG9vbHMuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlyT+OzEymhaZFNfx4+HFxZbBP3egvcUgPvGa7wWCV7vyuCauLBqwO1FQqzaRDxkEihkHqmUz63D25v2QixLxXyqaFQ8TxDFKwYATtSL7x5G2Gww56H0L1XGgYdNW1akPx90P+USmVn1Wb//7AwU+TV+u4jIgKZyTaIFWdFlwBhlp4OBEHCyYwngFgMyVoCBsSmwb4if7Mi5T746J9ZMQpC+ts+kfzley59Nz55pa5fRLwu4qxFUv2oRdXAf2ZLuxB7DPQbRH82/ewZZ8N4BUGiQyAwOsHgp0sb9JJ8uEM/qhyS1dXXxjo+kxsI5HXhxp4P5R9VADuOquaLIo8ptIrQIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQBW/Y7leJnV76+6bzeqqi+buTLyWc1mASi5LVH68mdailg2WmGfKlSMLGzFkNtg8fJnfaRZ/GtxmSxhpQRHn63ZlyzqVrFcJa0qzPG21PXPHG/ny8pN+BV8fk74CIb/+YN7NvDUrV7jlsPxNT2rQk8G2fM7jsTMYvtz0MBkrZZsUzTv4rZkF/v44J/ACDirKJiE+TYArm70yQPweX6RvYHNZLSzgg4o+hoyBXo5BGQetAjmcIhC6ZOwN3iVhGjp0YpWM0pkqStPy3sIR0//LZbskWWlSRb0fX1c4632Xb+zikfec4DniYV6CxkB2U+plHpOX1rt1R+UiTEIhTSXPNt/",
           validateInResponseTo: true,
         };
@@ -1196,7 +1196,7 @@ describe("node-saml /", function () {
         const container = { SAMLResponse: base64xml };
 
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: "MIICrjCCAZYCCQDWybyUsLVkXzANBgkqhkiG9w0BAQsFADAZMRcwFQYDVQQDFA5hY21lX3Rvb2xzLmNvbTAeFw0xNTA4MTgwODQ3MzZaFw0yNTA4MTcwODQ3MzZaMBkxFzAVBgNVBAMUDmFjbWVfdG9vbHMuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlyT+OzEymhaZFNfx4+HFxZbBP3egvcUgPvGa7wWCV7vyuCauLBqwO1FQqzaRDxkEihkHqmUz63D25v2QixLxXyqaFQ8TxDFKwYATtSL7x5G2Gww56H0L1XGgYdNW1akPx90P+USmVn1Wb//7AwU+TV+u4jIgKZyTaIFWdFlwBhlp4OBEHCyYwngFgMyVoCBsSmwb4if7Mi5T746J9ZMQpC+ts+kfzley59Nz55pa5fRLwu4qxFUv2oRdXAf2ZLuxB7DPQbRH82/ewZZ8N4BUGiQyAwOsHgp0sb9JJ8uEM/qhyS1dXXxjo+kxsI5HXhxp4P5R9VADuOquaLIo8ptIrQIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQBW/Y7leJnV76+6bzeqqi+buTLyWc1mASi5LVH68mdailg2WmGfKlSMLGzFkNtg8fJnfaRZ/GtxmSxhpQRHn63ZlyzqVrFcJa0qzPG21PXPHG/ny8pN+BV8fk74CIb/+YN7NvDUrV7jlsPxNT2rQk8G2fM7jsTMYvtz0MBkrZZsUzTv4rZkF/v44J/ACDirKJiE+TYArm70yQPweX6RvYHNZLSzgg4o+hoyBXo5BGQetAjmcIhC6ZOwN3iVhGjp0YpWM0pkqStPy3sIR0//LZbskWWlSRb0fX1c4632Xb+zikfec4DniYV6CxkB2U+plHpOX1rt1R+UiTEIhTSXPNt/",
           validateInResponseTo: false,
         };
@@ -1221,7 +1221,7 @@ describe("node-saml /", function () {
         const container = { SAMLResponse: base64xml };
 
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: "MIIDtTCCAp2gAwIBAgIJAKg4VeVcIDz1MA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpTb21lLVN0YXRlMSEwHwYDVQQKExhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwHhcNMTUwODEzMDE1NDIwWhcNMTUwOTEyMDE1NDIwWjBFMQswCQYDVQQGEwJVUzETMBEGA1UECBMKU29tZS1TdGF0ZTEhMB8GA1UEChMYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxG3ouM7U+fXbJt69X1H6d4UNg/uRr06pFuU9RkfIwNC+yaXyptqB3ynXKsL7BFt4DCd0fflRvJAx3feJIDp16wN9GDVHcufWMYPhh2j5HcTW/j9JoIJzGhJyvO00YKBt+hHy83iN1SdChKv5y0iSyiPP5GnqFw+ayyHoM6hSO0PqBou1Xb0ZSIE+DHosBnvVna5w2AiPY4xrJl9yZHZ4Q7DfMiYTgstjETio4bX+6oLiBnYktn7DjdEslqhffVme4PuBxNojI+uCeg/sn4QVLd/iogMJfDWNuLD8326Mi/FE9cCRvFlvAiMSaebMI3zPaySsxTK7Zgj5TpEbmbHI9wIDAQABo4GnMIGkMB0GA1UdDgQWBBSVGgvoW4MhMuzBGce29PY8vSzHFzB1BgNVHSMEbjBsgBSVGgvoW4MhMuzBGce29PY8vSzHF6FJpEcwRTELMAkGA1UEBhMCVVMxEzARBgNVBAgTClNvbWUtU3RhdGUxITAfBgNVBAoTGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZIIJAKg4VeVcIDz1MAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBAJu1rqs+anD74dbdwgd3CnqnQsQDJiEXmBhG2leaGt3ve9b/9gKaJg2pyb2NyppDe1uLqh6nNXDuzg1oNZrPz5pJL/eCXPl7FhxhMUi04TtLf8LeNTCIWYZiFuO4pmhohHcv8kRvYR1+6SkLTC8j/TZerm7qvesSiTQFNapa1eNdVQ8nFwVkEtWl+JzKEM1BlRcn42sjJkijeFp7DpI7pU+PnYeiaXpRv5pJo8ogM1iFxN+SnfEs0EuQ7fhKIG9aHKi7bKZ7L6SyX7MDIGLeulEU6lf5D9BfXNmcMambiS0pXhL2QXajt96UBq8FT2KNXY8XNtR4y6MyyCzhaiZZcc8=",
           validateInResponseTo: true,
         };
@@ -1295,7 +1295,7 @@ describe("node-saml /", function () {
 
     describe("assertion condition checks /", function () {
       const samlConfig = {
-        entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+        providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
         cert: TEST_CERT,
       };
       let fakeClock: sinon.SinonFakeTimers;
@@ -1436,7 +1436,7 @@ describe("node-saml /", function () {
         const container = { SAMLResponse: base64xml };
 
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           cert: TEST_CERT,
           acceptedClockSkewMs: -1,
         };
@@ -1593,7 +1593,7 @@ describe("node-saml /", function () {
         const container = { SAMLResponse: base64xml };
 
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           audience: "http://sp.example.com",
           acceptedClockSkewMs: -1,
           cert: signingCert,
@@ -1639,7 +1639,7 @@ describe("node-saml /", function () {
         const container = { SAMLResponse: base64xml };
 
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           audience: "http://sp.example.com",
           acceptedClockSkewMs: -1,
           cert: signingCert,
@@ -1685,7 +1685,7 @@ describe("node-saml /", function () {
         const container = { SAMLResponse: base64xml };
 
         const samlConfig = {
-          entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+          providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
           audience: "http://sp.example.com",
           acceptedClockSkewMs: -1,
           cert: signingCert,
@@ -1825,7 +1825,7 @@ describe("node-saml /", function () {
 
   it("errors if bad privateKey to requestToURL", async () => {
     const samlObj = new SAML({
-      entryPoint: "http://localhost",
+      providerSingleSignOnUrl: "http://localhost",
       privateKey:
         "-----BEGIN CERTIFICATE-----\n" +
         "8mvhvrcCOiJ3mjgKNN1F31jOBJuZNmq0U7n9v+Z+3NfyU/0E9jkrnFvm5ks+p8kl\n" +

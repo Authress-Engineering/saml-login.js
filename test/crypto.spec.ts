@@ -41,7 +41,7 @@ describe("crypto.ts", function () {
   describe("certToPEM", function () {
     it("should generate valid certificate", function () {
       const samlConfig = {
-        entryPoint: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
+        providerSingleSignOnUrl: "https://app.onelogin.com/trust/saml2/http-post/sso/371755",
         cert: "-----BEGIN CERTIFICATE-----" + TEST_CERT + "-----END CERTIFICATE-----",
         acceptedClockSkewMs: -1,
       };

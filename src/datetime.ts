@@ -1,11 +1,4 @@
 /**
- * Return the current time in ISO format.
- */
-export const generateInstant = (): string => {
-  return new Date().toISOString();
-};
-
-/**
  * Convert a date string to a timestamp (in milliseconds).
  *
  * @param dateString A string representation of a date

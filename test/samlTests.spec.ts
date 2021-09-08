@@ -13,7 +13,7 @@ describe("SAML.js", function () {
     let options: unknown;
     beforeEach(function () {
       saml = new SAML({
-        entryPoint: "https://exampleidp.com/path?key=value",
+        providerSingleSignOnUrl: "https://exampleidp.com/path?key=value",
         logoutUrl: "https://exampleidp.com/path?key=value",
         cert: FAKE_CERT,
       });

@@ -1,5 +1,3 @@
-import type { CacheProvider } from "./inmemory-cache-provider";
-
 export type SignatureAlgorithm = "sha1" | "sha256" | "sha512";
 
 export interface SamlSigningOptions {
@@ -77,6 +75,19 @@ interface SamlScopingConfig {
   requesterId?: string[] | string;
 }
 
+export interface AuthenticationOptions {
+  /** The provider's SSO URL. Where to direct the user to login and verify their identity. */
+  providerSingleSignOnUrl: string;
+  /** A unique ID generated for the request which can be used to verify later that the response is valid. If not specified an ID will be generated automatically. */
+  authenticationRequestId?: string;
+  /** The date of the request, later this date will be used to verify the response, if it is not provided here, it will automatically generated. */
+  requestTimestamp?: Date;
+  /** Your application's entity Id, should be a fully qualified URL, and must match the application entityId specified to the IdP.  */
+  applicationEntityId: string;
+  /** Your application's ACS SSO callback URL and must match the one registered with the IdP. This URL will receive the response from the IdP and must return a 302. */
+  applicationCallbackAssertionConsumerServiceUrl: string;
+}
+
 /**
  * The options required to use a SAML strategy
  * These may be provided by means of defaults specified in the constructor
@@ -87,7 +98,6 @@ export interface SamlOptions extends Partial<SamlSigningOptions>, MandatorySamlO
   path: string;
   protocol?: string;
   host: string;
-  entryPoint?: string;
   issuer: string;
   decryptionPvk?: string | Buffer;
 
@@ -115,7 +125,6 @@ export interface SamlOptions extends Partial<SamlSigningOptions>, MandatorySamlO
   // InResponseTo Validation
   validateInResponseTo: boolean;
   requestIdExpirationPeriodMs: number;
-  cacheProvider: CacheProvider;
 
   // Logout
   logoutUrl: string;
@@ -132,7 +141,7 @@ export interface StrategyOptions {
 }
 
 /**
- * These options are availble for configuring a SAML strategy
+ * These options are available for configuring a SAML strategy
  */
 export type SamlConfig = Partial<SamlOptions> & StrategyOptions & MandatorySamlOptions;
 
