@@ -349,7 +349,7 @@ class SamlLogin {
     });
   }
 
-  async getSamlAssertionMetadata(samlEncodedBody: string) : Promise<AuthenticationResponseMetadata> {
+  public async getSamlAssertionMetadata(samlEncodedBody: string) : Promise<AuthenticationResponseMetadata> {
     const container = querystring.decode(samlEncodedBody);
     const xml = Buffer.from(container.SAMLResponse as string, "base64").toString("utf8");
     const doc = parseDomFromString(xml);
@@ -361,12 +361,12 @@ class SamlLogin {
     const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
     const inResponseTo = inResponseToNodes && inResponseToNodes[0] && inResponseToNodes[0].nodeValue;
     if (inResponseTo) {
-      return { authenticationRequestId: inResponseTo };
+      return { authenticationRequestId: inResponseTo, data: xml };
     }
     throw Error('SAMLResponse does not have a valid authentication request ID.');
   }
 
-  async validatePostResponse(options: ValidationOptions, samlEncodedBody: string): Promise<{ profile?: Profile | null; loggedOut?: boolean }> {
+  public async validatePostResponse(options: ValidationOptions, samlEncodedBody: string): Promise<{ profile?: Profile | null; loggedOut?: boolean }> {
     const container = querystring.decode(samlEncodedBody);
     const xml = Buffer.from(container.SAMLResponse as string, "base64").toString("utf8");
     const doc = parseDomFromString(xml);
