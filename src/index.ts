@@ -1,4 +1,4 @@
-import SamlLogin from "./saml";
-import { AuthenticationOptions, Profile, ValidationOptions } from "./types";
+import SAML from "./saml";
+import { AuthenticationOptions, Profile, ValidationOptions, AuthenticationResponseMetadata } from "./types";
 
-export { SamlLogin, AuthenticationOptions, Profile, ValidationOptions };
+export { SAML, Profile, AuthenticationOptions, ValidationOptions, AuthenticationResponseMetadata };

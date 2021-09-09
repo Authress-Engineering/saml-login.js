@@ -16,7 +16,8 @@ npm install saml-login
 The SAML identity provider will redirect you to the URL provided by the `path` configuration.
 
 ```javascript
-const samlLogin = require("saml-login");
+const { SAML } = require("saml-login");
+const saml = new SAML();
 
 const options = {
   /** The provider's SSO URL. Where to direct the user to login and verify their identity. */
@@ -31,21 +32,24 @@ const options = {
   applicationCallbackAssertionConsumerServiceUrl: 'string',
 };
 
-const idpAuthenticationUrl = await samlLogin.generateAuthenticationUrl(options);
+const idpAuthenticationUrl = await saml.generateAuthenticationUrl(options);
 ```
 
 ### Verify and Parse Login Response
 ```javascript
+const { SAML } = require("saml-login");
+const saml = new SAML();
+
 const options = {
   /** Identity provider public certificate to use for verifying the signature of the SAML Response. */
-  providerCertificate: string,
+  providerCertificate: 'string',
 
   /** Your application's entity Id, should be a fully qualified URL, and must match the application entityId specified to the IdP, used to verify the response.  */
-  applicationEntityId: string
+  applicationEntityId: 'string'
 };
 
-const authenticationRequestId = await samlLogin.getAuthenticationRequestIdFromSamlAssertion(request.body);
-const { profile } = await samlLogin.validatePostResponse(options, request.body);
+const { authenticationRequestId } = await saml.getSamlAssertionMetadata(request.body);
+const { profile } = await saml.validatePostResponse(options, request.body);
 ```
 
 #### Config options details:

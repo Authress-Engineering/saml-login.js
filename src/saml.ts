@@ -10,7 +10,8 @@ import {
   XMLObject,
   XMLOutput,
   AuthenticationOptions,
-  ValidationOptions
+  ValidationOptions,
+  AuthenticationResponseMetadata
 } from "./types";
 import { assertRequired } from "./utility";
 import {
@@ -22,15 +23,11 @@ import {
   validateXmlSignatureForCert,
   xpath,
 } from "./xml";
-import { certToPEM, generateUniqueId } from "./crypto";
+import { certToPEM, generateUniqueId, keyToPEM } from "./crypto";
 import { dateStringToTimestamp } from "./datetime";
+import { getSigner, getSigningAlgorithm } from "./algorithms";
 
 const deflateRaw = util.promisify(zlib.deflateRaw);
-
-interface NameID {
-  value: string | null;
-  format: string | null;
-}
 
 // async function processValidlySignedSamlLogout(
 //   doc: XMLOutput,
@@ -48,37 +45,28 @@ interface NameID {
 //   }
 // }
 
-async function promiseWithNameID(nameId: Node): Promise<NameID> {
-  const format = xpath.selectAttributes(nameId, "@Format");
-  return {
-    value: nameId.textContent,
-    format: format && format[0] && format[0].nodeValue,
-  };
-}
-
 class SamlLogin {
   private requestIdExpirationPeriodMs = 28800000;
-  // private signRequest(samlMessage: querystring.ParsedUrlQueryInput): void {
-  //   options.privateKey = assertRequired(options.privateKey, "privateKey is required");
 
-  //   const samlMessageToSign: querystring.ParsedUrlQueryInput = {};
-  //   samlMessage.SigAlg = algorithms.getSigningAlgorithm(options.signatureAlgorithm);
-  //   const signer = algorithms.getSigner(options.signatureAlgorithm);
-  //   if (samlMessage.SAMLRequest) {
-  //     samlMessageToSign.SAMLRequest = samlMessage.SAMLRequest;
-  //   }
-  //   if (samlMessage.SAMLResponse) {
-  //     samlMessageToSign.SAMLResponse = samlMessage.SAMLResponse;
-  //   }
-  //   if (samlMessage.RelayState) {
-  //     samlMessageToSign.RelayState = samlMessage.RelayState;
-  //   }
-  //   if (samlMessage.SigAlg) {
-  //     samlMessageToSign.SigAlg = samlMessage.SigAlg;
-  //   }
-  //   signer.update(querystring.stringify(samlMessageToSign));
-  //   samlMessage.Signature = signer.sign(keyToPEM(options.privateKey), "base64");
-  // }
+  private signRequest(samlMessage: querystring.ParsedUrlQueryInput, privateKey: string, signatureAlgorithm: string): void {
+    const samlMessageToSign: querystring.ParsedUrlQueryInput = {};
+    samlMessage.SigAlg = getSigningAlgorithm(signatureAlgorithm);
+    const signer = getSigner(signatureAlgorithm);
+    if (samlMessage.SAMLRequest) {
+      samlMessageToSign.SAMLRequest = samlMessage.SAMLRequest;
+    }
+    if (samlMessage.SAMLResponse) {
+      samlMessageToSign.SAMLResponse = samlMessage.SAMLResponse;
+    }
+    if (samlMessage.RelayState) {
+      samlMessageToSign.RelayState = samlMessage.RelayState;
+    }
+    if (samlMessage.SigAlg) {
+      samlMessageToSign.SigAlg = samlMessage.SigAlg;
+    }
+    signer.update(querystring.stringify(samlMessageToSign));
+    samlMessage.Signature = signer.sign(keyToPEM(privateKey), "base64");
+  }
 
   public async generateAuthenticationUrl(options: AuthenticationOptions) : Promise<string> {
     const providerSingleSignOnUrl = assertRequired(options.providerSingleSignOnUrl, "The provider's ACS URL `providerSingleSignOnUrl` is required");
@@ -361,7 +349,7 @@ class SamlLogin {
     });
   }
 
-  async getAuthenticationRequestIdFromSamlAssertion(samlEncodedBody: string) : Promise<string> {
+  async getSamlAssertionMetadata(samlEncodedBody: string) : Promise<AuthenticationResponseMetadata> {
     const container = querystring.decode(samlEncodedBody);
     const xml = Buffer.from(container.SAMLResponse as string, "base64").toString("utf8");
     const doc = parseDomFromString(xml);
@@ -373,12 +361,12 @@ class SamlLogin {
     const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
     const inResponseTo = inResponseToNodes && inResponseToNodes[0] && inResponseToNodes[0].nodeValue;
     if (inResponseTo) {
-      return inResponseTo;
+      return { authenticationRequestId: inResponseTo };
     }
     throw Error('SAMLResponse does not have a valid authentication request ID.');
   }
 
-  async validatePostResponse(options: ValidationOptions, samlEncodedBody: string): Promise<{ profile?: Profile | null; authenticationRequest?: Record<string, unknown>; loggedOut?: boolean }> {
+  async validatePostResponse(options: ValidationOptions, samlEncodedBody: string): Promise<{ profile?: Profile | null; loggedOut?: boolean }> {
     const container = querystring.decode(samlEncodedBody);
     const xml = Buffer.from(container.SAMLResponse as string, "base64").toString("utf8");
     const doc = parseDomFromString(xml);
@@ -424,11 +412,11 @@ class SamlLogin {
     }
 
     if (encryptedAssertions.length) {
-      assertRequired(options.applicationPrivateKey, "No decryption key for encrypted SAML response");
+      const applicationPrivateKey = assertRequired(options.applicationPrivateKey, "No decryption key for encrypted SAML response");
 
       const encryptedAssertionXml = encryptedAssertions[0].toString();
 
-      const decryptedXml = await decryptXml(encryptedAssertionXml, options.applicationPrivateKey);
+      const decryptedXml = await decryptXml(encryptedAssertionXml, applicationPrivateKey);
       const decryptedDoc = parseDomFromString(decryptedXml);
       const decryptedAssertions = xpath.selectElements(decryptedDoc, "/*[local-name()='Assertion']");
       if (decryptedAssertions.length != 1) throw new Error("Invalid EncryptedAssertion content");
@@ -445,7 +433,7 @@ class SamlLogin {
       throw new Error("Invalid signature: No response found");
     }
 
-    const xmlJsDoc = await parseXml2JsFromString(xml);
+    const xmlJsDoc: XMLOutput = await parseXml2JsFromString(xml);
     if (xmlJsDoc.LogoutResponse) {
       return { profile: null, loggedOut: true };
     }
@@ -486,27 +474,9 @@ class SamlLogin {
   }
   
   private async processValidlySignedAssertion(xml: string, samlResponseXml: string, inResponseTo: string, applicationEntityId: string) {
-    let msg;
-    const profile = {} as Profile;
-    const doc: XMLOutput = await parseXml2JsFromString(xml);
-    const assertion: XMLOutput = doc.Assertion;
-
-    const issuer: unknown = assertion.Issuer;
-    if (issuer && issuer[0]._) {
-      profile.issuer = issuer[0]._;
-    }
-
-    if (inResponseTo) {
-      profile.inResponseTo = inResponseTo;
-    }
-
-    const authnStatement = assertion.AuthnStatement;
-    if (authnStatement) {
-      if (authnStatement[0].$ && authnStatement[0].$.SessionIndex) {
-        profile.sessionIndex = authnStatement[0].$.SessionIndex;
-      }
-    }
-
+    const profile: XMLOutput = {};
+    const doc = await parseXml2JsFromString(xml);
+    const assertion = doc.Assertion;
     const subject = assertion.Subject;
     let subjectConfirmation, confirmData;
     if (subject) {
@@ -524,8 +494,7 @@ class SamlLogin {
       subjectConfirmation = subject[0].SubjectConfirmation && subject[0].SubjectConfirmation[0];
       confirmData = subjectConfirmation && subjectConfirmation.SubjectConfirmationData && subjectConfirmation.SubjectConfirmationData[0];
       if (subjectConfirmation && subject[0].SubjectConfirmation.length > 1) {
-        msg = "Unable to process multiple SubjectConfirmations in SAML assertion";
-        throw new Error(msg);
+        throw new Error("Unable to process multiple SubjectConfirmations in SAML assertion");
       }
 
       if (subjectConfirmation) {
@@ -533,9 +502,7 @@ class SamlLogin {
           const subjectNotBefore = confirmData.$.NotBefore;
           const subjectNotOnOrAfter = confirmData.$.NotOnOrAfter;
           const maxTimeLimitMs = this.processMaxAgeAssertionTime(this.requestIdExpirationPeriodMs, subjectNotOnOrAfter, assertion.$.IssueInstant);
-
-          const nowMs = new Date().getTime();
-          const subjErr = this.checkTimestampsValidityError(nowMs, subjectNotBefore, subjectNotOnOrAfter, maxTimeLimitMs);
+          const subjErr = this.checkTimestampsValidityError(subjectNotBefore, subjectNotOnOrAfter, maxTimeLimitMs);
           if (subjErr) {
             throw subjErr;
           }
@@ -555,8 +522,7 @@ class SamlLogin {
     }
     const conditions = assertion.Conditions ? assertion.Conditions[0] : null;
     if (assertion.Conditions && assertion.Conditions.length > 1) {
-      msg = "Unable to process multiple conditions in SAML assertion";
-      throw new Error(msg);
+      throw new Error("Unable to process multiple conditions in SAML assertion");
     }
     if (conditions && conditions.$) {
       const maxTimeLimitMs = this.processMaxAgeAssertionTime(this.requestIdExpirationPeriodMs, conditions.$.NotOnOrAfter, assertion.$.IssueInstant);
@@ -615,36 +581,37 @@ class SamlLogin {
       }
     }
 
-    if (!profile.mail && profile["urn:oid:0.9.2342.19200300.100.1.3"]) {
+    let email;
+    const userId = profile.nameID;
+    if (!email && profile.mail) {
+      email = profile.mail;
+    }
+    if (!email && profile["urn:oid:0.9.2342.19200300.100.1.3"]) {
       // See https://spaces.internet2.edu/display/InCFederation/Supported+Attribute+Summary
       // for definition of attribute OIDs
-      profile.mail = profile["urn:oid:0.9.2342.19200300.100.1.3"];
+      email = profile["urn:oid:0.9.2342.19200300.100.1.3"];
     }
 
-    if (!profile.email && profile.mail) {
-      profile.email = profile.mail;
-    }
-
-    return { profile, authenticationRequest, loggedOut: false };
+    return { profile: { email, userId }, loggedOut: false };
   }
 
-  private checkTimestampsValidityError(notBefore: string, notOnOrAfter: string, maxTimeLimitMs?: number) {
-    if (options.acceptedClockSkewMs == -1) return null;
+  private checkTimestampsValidityError(notBefore: string, notOnOrAfter: string, maxTimeLimitMs?: number, acceptedClockSkewMs = -1) {
+    if (acceptedClockSkewMs == -1) return null;
 
     const nowMs = new Date().getTime();
 
     if (notBefore) {
       const notBeforeMs = dateStringToTimestamp(notBefore, "NotBefore");
-      if (nowMs + options.acceptedClockSkewMs < notBeforeMs)
+      if (nowMs + acceptedClockSkewMs < notBeforeMs)
         return new Error("SAML assertion not yet valid");
     }
     if (notOnOrAfter) {
       const notOnOrAfterMs = dateStringToTimestamp(notOnOrAfter, "NotOnOrAfter");
-      if (nowMs - options.acceptedClockSkewMs >= notOnOrAfterMs)
+      if (nowMs - acceptedClockSkewMs >= notOnOrAfterMs)
         return new Error("SAML assertion expired: clocks skewed too much");
     }
     if (maxTimeLimitMs) {
-      if (nowMs - options.acceptedClockSkewMs >= maxTimeLimitMs)
+      if (nowMs - acceptedClockSkewMs >= maxTimeLimitMs)
         return new Error("SAML assertion expired: assertion too old");
     }
 

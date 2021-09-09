@@ -4,7 +4,7 @@ import * as xmlEnc from "xml-encryption";
 import * as xmldom from "@xmldom/xmldom";
 import * as xml2js from "xml2js";
 import * as xmsBuilder from "xmlbuilder";
-import { isValidSamlSigningOptions, SamlSigningOptions } from "./types";
+import { AuthorizeRequestXML, isValidSamlSigningOptions, SamlSigningOptions, XMLObject, XMLOutput } from "./types";
 import * as algorithms from "./algorithms";
 
 type SelectedValue = string | number | boolean | Node;
@@ -46,7 +46,7 @@ export const xpath = {
     selectXPath(elementsXPathTypeGuard, node, xpath),
 };
 
-export const decryptXml = async (xml: string, decryptionKey: string | Buffer) : Promise<string | Error> =>
+export const decryptXml = async (xml: string, decryptionKey: string | Buffer) : Promise<string> =>
   util.promisify(xmlEnc.decrypt).bind(xmlEnc)(xml, { key: decryptionKey });
 
 const normalizeNewlines = (xml: string): string => {
@@ -123,7 +123,7 @@ export const signXml = (
   if (!options) throw new Error("options is required");
   if (!isValidSamlSigningOptions(options)) throw new Error("options.privateKey is required");
 
-  const transforms = options.xmlSignatureTransforms ?? defaultTransforms;
+  const transforms = options.xmlSignatureTransforms || defaultTransforms;
   const sig = new xmlCrypto.SignedXml();
   if (options.signatureAlgorithm != null) {
     sig.signatureAlgorithm = algorithms.getSigningAlgorithm(options.signatureAlgorithm);
@@ -141,7 +141,7 @@ export const parseDomFromString = (xml: string): Document => {
   return new xmldom.DOMParser().parseFromString(xml);
 };
 
-export const parseXml2JsFromString = async (xml: string | Buffer): Promise<unknown> => {
+export const parseXml2JsFromString = async (xml: string | Buffer): Promise<XMLOutput> => {
   const parserConfig = {
     explicitRoot: true,
     explicitCharkey: true,
@@ -159,7 +159,8 @@ export const buildXml2JsObject = (rootName: string, xml: unknown): string => {
   return new xml2js.Builder(builderOpts).buildObject(xml);
 };
 
-export const buildXmlBuilderObject = (xml: Record<string, unknown>, pretty: boolean): string => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const buildXmlBuilderObject = (xml: Record<string, any>, pretty: boolean): string => {
   const options = pretty ? { pretty: true, indent: "  ", newline: "\n" } : {};
   return xmsBuilder.create(xml).end(options);
 };

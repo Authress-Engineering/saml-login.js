@@ -17,7 +17,7 @@ export interface AudienceRestrictionXML {
   Audience?: XMLObject[];
 }
 
-export type XMLValue = string | number | boolean | null | XMLObject | XMLValue[];
+export type XMLValue = string | number | boolean | XMLObject | XMLValue[];
 
 export type XMLObject = {
   [key: string]: XMLValue;
@@ -25,7 +25,9 @@ export type XMLObject = {
 
 export type XMLInput = XMLObject;
 
-export type XMLOutput = Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore 
+export type XMLOutput = Record<string, XMLOutput>;
 
 export interface AuthorizeRequestXML extends Record<string, unknown> {
   "samlp:AuthnRequest": XMLInput;
@@ -67,6 +69,11 @@ export interface ServiceMetadataXML {
   };
 }
 
+export interface AuthenticationResponseMetadata {
+  /** A unique ID generated for the request */
+  authenticationRequestId: string;
+}
+
 export interface AuthenticationOptions {
   /** The provider's SSO URL. Where to direct the user to login and verify their identity. */
   providerSingleSignOnUrl: string;
@@ -98,17 +105,8 @@ export interface ValidationOptions {
 }
 
 export interface Profile {
-  issuer?: string;
-  sessionIndex?: string;
-  nameID?: string;
-  nameIDFormat?: string;
-  nameQualifier?: string;
-  spNameQualifier?: string;
-  ID?: string;
-  mail?: string; // InCommon Attribute urn:oid:0.9.2342.19200300.100.1.3
-  email?: string; // `mail` if not present in the assertion
-  ["urn:oid:0.9.2342.19200300.100.1.3"]?: string;
-  [attributeName: string]: unknown; // arbitrary `AttributeValue`s
+  userId: string;
+  email?: string;
 }
 
 export class ErrorWithXmlStatus extends Error {
