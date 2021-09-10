@@ -25,6 +25,9 @@ export const keyToPEM = (
 };
 
 export const certToPEM = (cert: string): string => {
+  if (cert.indexOf("-BEGIN CERTIFICATE-") !== -1 && cert.indexOf("-END CERTIFICATE-") !== -1) {
+    return cert;
+  }
   cert = cert.match(/.{1,64}/g)!.join("\n");
 
   if (cert.indexOf("-BEGIN CERTIFICATE-") === -1) cert = "-----BEGIN CERTIFICATE-----\n" + cert;

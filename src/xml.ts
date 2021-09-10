@@ -4,7 +4,7 @@ import * as xmlEnc from "xml-encryption";
 import * as xmldom from "@xmldom/xmldom";
 import * as xml2js from "xml2js";
 import * as xmsBuilder from "xmlbuilder";
-import { AuthorizeRequestXML, isValidSamlSigningOptions, SamlSigningOptions, XMLObject, XMLOutput } from "./types";
+import { isValidSamlSigningOptions, SamlSigningOptions, XMLOutput } from "./types";
 import * as algorithms from "./algorithms";
 
 type SelectedValue = string | number | boolean | Node;
