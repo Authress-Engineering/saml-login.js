@@ -72,9 +72,6 @@ export interface ServiceMetadataXML {
 export interface AuthenticationResponseMetadata {
   /** A unique ID generated for the request */
   authenticationRequestId: string;
-
-  /** The request destructured to a string for handling redirects and storage. */
-  data: string;
 }
 
 export interface AuthenticationOptions {

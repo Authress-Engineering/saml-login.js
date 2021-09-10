@@ -361,7 +361,7 @@ class SamlLogin {
     const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
     const inResponseTo = inResponseToNodes && inResponseToNodes[0] && inResponseToNodes[0].nodeValue;
     if (inResponseTo) {
-      return { authenticationRequestId: inResponseTo, data: xml };
+      return { authenticationRequestId: inResponseTo };
     }
     throw Error('SAMLResponse does not have a valid authentication request ID.');
   }
