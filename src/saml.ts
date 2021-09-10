@@ -581,18 +581,15 @@ class SamlLogin {
       }
     }
 
-    let email;
-    const userId = profile.nameID;
-    if (!email && profile.mail) {
-      email = profile.mail;
+    if (!profile.email && profile.mail) {
+      profile.email = profile.mail;
     }
-    if (!email && profile["urn:oid:0.9.2342.19200300.100.1.3"]) {
-      // See https://spaces.internet2.edu/display/InCFederation/Supported+Attribute+Summary
-      // for definition of attribute OIDs
-      email = profile["urn:oid:0.9.2342.19200300.100.1.3"];
+    if (!profile.email && profile["urn:oid:0.9.2342.19200300.100.1.3"]) {
+      // See https://spaces.internet2.edu/display/InCFederation/Supported+Attribute+Summary for definition of attribute OIDs
+      profile.email = profile["urn:oid:0.9.2342.19200300.100.1.3"];
     }
 
-    return { profile: { email, userId }, loggedOut: false };
+    return { profile, loggedOut: false };
   }
 
   private checkTimestampsValidityError(notBefore: string, notOnOrAfter: string, maxTimeLimitMs?: number, acceptedClockSkewMs = -1) {

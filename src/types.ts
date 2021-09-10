@@ -105,7 +105,9 @@ export interface ValidationOptions {
 }
 
 export interface Profile {
-  userId: string;
+  nameID: string;
+  nameIDFormat?: string;
+  nameQualifier?: string;
   email?: string;
 }
 
