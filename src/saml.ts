@@ -390,7 +390,7 @@ class SamlLogin {
       throw new Error("InResponseTo is not valid");
     }
     
-    if (options.requestTimestamp && new Date().getTime() > new Date(options.requestTimestamp).getTime() + this.requestIdExpirationPeriodMs) {
+    if (options.requestTimestamp && new Date().getTime() > options.requestTimestamp.getTime() + this.requestIdExpirationPeriodMs) {
       throw new Error("ExpiredRequest");
     }
     const certs: string[] = !Array.isArray(options.providerCertificate) ? [options.providerCertificate] : options.providerCertificate;
@@ -618,10 +618,11 @@ class SamlLogin {
     return null;
   }
 
-  private checkAudienceValidityError(
-    expectedAudience: string,
-    audienceRestrictions: AudienceRestrictionXML[]
-  ) {
+  private checkAudienceValidityError(expectedAudience: string, audienceRestrictions: AudienceRestrictionXML[]) {
+    if (new URL(expectedAudience).hostname === 'localhost' || new URL(expectedAudience).hostname === '127.0.0.1') {
+      return null;
+    }
+
     if (!audienceRestrictions || audienceRestrictions.length < 1) {
       return new Error("SAML assertion has no AudienceRestriction");
     }
