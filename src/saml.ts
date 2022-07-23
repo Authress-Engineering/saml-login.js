@@ -98,7 +98,7 @@ class SamlLogin {
     xmlRequest["samlp:AuthnRequest"]["samlp:NameIDPolicy"] = {
       "@xmlns:samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
       "@Format": 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified',
-      "@AllowCreate": "true",
+      "@AllowCreate": options.allowCreate ? "true" : "false",
     };
 
     // const authnContextClassRefs: XMLInput[] = [];

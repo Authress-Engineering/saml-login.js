@@ -85,6 +85,8 @@ export interface AuthenticationOptions {
   applicationEntityId: string;
   /** Your application's ACS SSO callback URL and must match the one registered with the IdP. This URL will receive the response from the IdP and must return a 302. */
   applicationCallbackAssertionConsumerServiceUrl: string;
+  /** Instruct the provider that users are allowed sign up via the login process */
+  allowCreate: boolean;
 }
 
 export interface ValidationOptions {
