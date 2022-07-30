@@ -63,8 +63,6 @@ class SamlLogin {
     const expiryDateTime = new Date(instantDateTime);
     expiryDateTime.setTime(expiryDateTime.getTime() + 30 * 60 * 1000);
 
-    console.log(expiryDateTime.toISOString());
-
     const xmlResponse: DelegationResponseXML = {
       "samlp:Response": {
         "@xmlns:samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
