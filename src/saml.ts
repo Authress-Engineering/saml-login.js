@@ -78,7 +78,9 @@ class SamlLogin {
           "#text": options.issuerEntityId,
         },
         "samlp:Status": {
-          "@Value": "urn:oasis:names:tc:SAML:2.0:status:Success",
+          "samlp:StatusCode": {
+            "@Value": "urn:oasis:names:tc:SAML:2.0:status:Success",
+          }
         },
         "saml:Assertion": {
           "@xmlns:saml": "urn:oasis:names:tc:SAML:2.0:assertion",
