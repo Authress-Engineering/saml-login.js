@@ -107,7 +107,7 @@ class SamlLogin {
             "@NotBefore": clockSkewDateTime.toISOString(),
             "@NotOnOrAfter": expiryDateTime.toISOString(),
             "saml:AudienceRestriction": {
-                "saml:Audience": options.applicationEntityId
+              "saml:Audience": options.applicationEntityId
             }
           },
           "saml:AttributeStatement": {
