@@ -67,6 +67,7 @@
   },
   "exclude": [
     "node_modules",
+    "node-saml",
     "docs",
     "lib",
     "multiSamlStrategy.js",

@@ -1,32 +1,14 @@
 import * as crypto from "crypto";
-import { assertRequired } from "./utility";
 
-export const keyToPEM = (
-  key: string | Buffer
-): typeof key extends string | Buffer ? string | Buffer : Error => {
-  key = assertRequired(key, "key is required");
-
-  if (typeof key !== "string") return key;
-  if (key.split(/\r?\n/).length !== 1) return key;
-
-  const matchedKey = key.match(/.{1,64}/g);
-
-  if (matchedKey) {
-    const wrappedKey = [
-      "-----BEGIN PRIVATE KEY-----",
-      ...matchedKey,
-      "-----END PRIVATE KEY-----",
-      "",
-    ].join("\n");
-    return wrappedKey;
-  }
-
-  throw new Error("Invalid key");
+export const keyToPEM = (key: string): typeof key extends string | Buffer ? string | Buffer : Error => {
+  const bufferedKey = Buffer.from(key.replace(/[ \t\f]/g, '').replace(/-{5}.*-{5}/g, '').replace(/\r?\n/g, ''), 'base64');
+  const keyObject = crypto.createPrivateKey({ key: bufferedKey, format: 'der', type: 'pkcs8' })
+  return keyObject.export({ format: 'pem', type: 'pkcs8' });
 };
 
 export const certToPEM = (cert: string): string => {
   if (cert.indexOf("-BEGIN CERTIFICATE-") !== -1 && cert.indexOf("-END CERTIFICATE-") !== -1) {
-    return cert;
+    return cert.replace(/[ \t\f]/g, '').replace('BEGINCERTIFICATE', 'BEGIN CERTIFICATE').replace('ENDCERTIFICATE', 'END CERTIFICATE');
   }
   cert = cert.match(/.{1,64}/g)!.join("\n");
 

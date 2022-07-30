@@ -5,15 +5,17 @@ import * as util from "util";
 import {
   AudienceRestrictionXML,
   AuthorizeRequestXML,
+  DelegationResponseXML,
   ErrorWithXmlStatus,
   Profile,
   XMLObject,
   XMLOutput,
   AuthenticationOptions,
+  DelegationOptions,
   ValidationOptions,
   AuthenticationResponseMetadata
 } from "./types";
-import { assertRequired } from "./utility";
+import { assertRequired, signXmlResponse } from "./utility";
 import {
   buildXml2JsObject,
   buildXmlBuilderObject,
@@ -26,6 +28,7 @@ import {
 import { certToPEM, generateUniqueId, keyToPEM } from "./crypto";
 import { dateStringToTimestamp } from "./datetime";
 import { getSigner, getSigningAlgorithm } from "./algorithms";
+import { createPublicKey } from "crypto";
 
 const deflateRaw = util.promisify(zlib.deflateRaw);
 
@@ -48,24 +51,102 @@ const deflateRaw = util.promisify(zlib.deflateRaw);
 class SamlLogin {
   private requestIdExpirationPeriodMs = 28800000;
 
-  private signRequest(samlMessage: querystring.ParsedUrlQueryInput, privateKey: string, signatureAlgorithm: string): void {
-    const samlMessageToSign: querystring.ParsedUrlQueryInput = {};
-    samlMessage.SigAlg = getSigningAlgorithm(signatureAlgorithm);
-    const signer = getSigner(signatureAlgorithm);
-    if (samlMessage.SAMLRequest) {
-      samlMessageToSign.SAMLRequest = samlMessage.SAMLRequest;
+
+  public async generateDelegationUrl(options: DelegationOptions) : Promise<string> {
+    const id = generateUniqueId();
+    const assertionId = generateUniqueId();
+    const instantDateTime = options.requestTimestamp || new Date();
+
+    const clockSkewDateTime = new Date(instantDateTime);
+    clockSkewDateTime.setTime(clockSkewDateTime.getTime() - 5 * 60 * 1000);
+
+    const expiryDateTime = new Date(instantDateTime);
+    expiryDateTime.setTime(expiryDateTime.getTime() + 30 * 60 * 1000);
+
+    console.log(expiryDateTime.toISOString());
+
+    const xmlResponse: DelegationResponseXML = {
+      "samlp:Response": {
+        "@xmlns:samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
+        "@ID": id,
+        "@Version": "2.0",
+        "@IssueInstant": instantDateTime.toISOString(),
+        // "@ProtocolBinding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+        "@Destination": options.applicationAssertionConsumerServiceUrl,
+        "saml:Issuer": {
+          "@xmlns:saml": "urn:oasis:names:tc:SAML:2.0:assertion",
+          "#text": options.issuerEntityId,
+        },
+        "samlp:Status": {
+          "@Value": "urn:oasis:names:tc:SAML:2.0:status:Success",
+        },
+        "saml:Assertion": {
+          "@xmlns:saml": "urn:oasis:names:tc:SAML:2.0:assertion",
+          "@ID": assertionId,
+          "@Version": "2.0",
+          "@IssueInstant": instantDateTime.toISOString(),
+          "saml:Issuer": {
+            "#text": options.issuerEntityId,
+          },
+          "saml:Subject": {
+            "saml:NameID": {
+              "@Format": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+              "#text": options.userId
+            },
+            "saml:SubjectConfirmation": {
+              "@Method": "urn:oasis:names:tc:SAML:2.0:cm:bearer",
+              "saml:SubjectConfirmationData": {
+                "@NotOnOrAfter": expiryDateTime.toISOString(),
+                "@Recipient": options.applicationAssertionConsumerServiceUrl
+              }
+            }
+          },
+          "saml:Conditions": {
+            "@NotBefore": clockSkewDateTime.toISOString(),
+            "@NotOnOrAfter": expiryDateTime.toISOString(),
+            "saml:AudienceRestriction": {
+                "saml:Audience": options.applicationEntityId
+            }
+          },
+          "saml:AttributeStatement": {
+            "saml:Attribute": {
+              "@Name": "userId"
+            }
+          },
+          "saml:AuthnStatement": {
+            "@AuthnInstant": instantDateTime.toISOString(),
+            "@SessionIndex": assertionId,
+            "saml:AuthnContext": {
+              "saml:AuthnContextClassRef": "urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified"
+            }
+          }
+        }
+      },
+    };
+
+    if (options.state) {
+      xmlResponse['samlp:Response']['@InResponseTo'] = options.state;
     }
-    if (samlMessage.SAMLResponse) {
-      samlMessageToSign.SAMLResponse = samlMessage.SAMLResponse;
-    }
-    if (samlMessage.RelayState) {
-      samlMessageToSign.RelayState = samlMessage.RelayState;
-    }
-    if (samlMessage.SigAlg) {
-      samlMessageToSign.SigAlg = samlMessage.SigAlg;
-    }
-    signer.update(querystring.stringify(samlMessageToSign));
-    samlMessage.Signature = signer.sign(keyToPEM(privateKey), "base64");
+
+    const unsignedResponse = buildXmlBuilderObject(xmlResponse, false);
+
+    const signingOptions = {
+      privateKey: keyToPEM(options.privateKey)
+    };
+    const signedResponse = signXmlResponse(unsignedResponse, signingOptions)
+
+    const target = new URL(options.applicationAssertionConsumerServiceUrl);
+    target.searchParams.set('SAMLResponse', Buffer.from(signedResponse).toString('base64'));
+    target.searchParams.set('RelayState', options.state || '');
+
+    // Test verify signature
+    // const validationOptions = {
+    //   providerCertificate: options.publicKey,
+    //   expectedProviderIssuer: options.issuerEntityId,
+    //   applicationEntityId: options.applicationEntityId
+    // };
+    // const { profile } = await this.validatePostResponse(validationOptions, target.searchParams.toString());
+    return target.toString();
   }
 
   public async generateAuthenticationUrl(options: AuthenticationOptions) : Promise<string> {
@@ -89,10 +170,6 @@ class SamlLogin {
       },
     };
 
-    // if (options.forceAuthn) {
-    //   xmlRequest["samlp:AuthnRequest"]["@ForceAuthn"] = true;
-    // }
-
     xmlRequest["samlp:AuthnRequest"]["@AssertionConsumerServiceURL"] = options.applicationCallbackAssertionConsumerServiceUrl;
 
     xmlRequest["samlp:AuthnRequest"]["samlp:NameIDPolicy"] = {
@@ -101,82 +178,11 @@ class SamlLogin {
       "@AllowCreate": options.allowCreate ? "true" : "false",
     };
 
-    // const authnContextClassRefs: XMLInput[] = [];
-    // (options.authnContext as string[]).forEach(function (value) {
-    //   authnContextClassRefs.push({
-    //     "@xmlns:saml": "urn:oasis:names:tc:SAML:2.0:assertion",
-    //     "#text": value,
-    //   });
-    // });
-
     xmlRequest["samlp:AuthnRequest"]["samlp:RequestedAuthnContext"] = {
       "@xmlns:samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
       "@Comparison": 'exact',
       "saml:AuthnContextClassRef": [],
     };
-
-    // if (options.attributeConsumingServiceIndex != null) {
-    //   xmlRequest["samlp:AuthnRequest"]["@AttributeConsumingServiceIndex"] =
-    //     options.attributeConsumingServiceIndex;
-    // }
-
-    // if (options.applicationName != null) {
-    //   xmlRequest["samlp:AuthnRequest"]["@ProviderName"] = options.applicationName;
-    // }
-
-    // if (options.scoping != null) {
-    //   const scoping: XMLInput = {
-    //     "@xmlns:samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
-    //   };
-
-    //   if (typeof options.scoping.proxyCount === "number") {
-    //     scoping["@ProxyCount"] = options.scoping.proxyCount;
-    //   }
-
-    //   if (options.scoping.idpList) {
-    //     scoping["samlp:IDPList"] = options.scoping.idpList.map(
-    //       (idpListItem: SamlIDPListConfig) => {
-    //         const formattedIdpListItem: XMLInput = {
-    //           "@xmlns:samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
-    //         };
-
-    //         if (idpListItem.entries) {
-    //           formattedIdpListItem["samlp:IDPEntry"] = idpListItem.entries.map(
-    //             (entry: SamlIDPEntryConfig) => {
-    //               const formattedEntry: XMLInput = {
-    //                 "@xmlns:samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
-    //               };
-
-    //               formattedEntry["@ProviderID"] = entry.providerId;
-
-    //               if (entry.name) {
-    //                 formattedEntry["@Name"] = entry.name;
-    //               }
-
-    //               if (entry.loc) {
-    //                 formattedEntry["@Loc"] = entry.loc;
-    //               }
-
-    //               return formattedEntry;
-    //             }
-    //           );
-    //         }
-
-    //         if (idpListItem.getComplete) {
-    //           formattedIdpListItem["samlp:GetComplete"] = idpListItem.getComplete;
-    //         }
-
-    //         return formattedIdpListItem;
-    //       }
-    //     );
-    //   }
-
-    //   if (options.scoping.requesterId) {
-    //     scoping["samlp:RequesterID"] = options.scoping.requesterId;
-    //   }
-
-    //   xmlRequest["samlp:AuthnRequest"]["samlp:Scoping"] = scoping;
-    // }
 
     const request = buildXmlBuilderObject(xmlRequest, false);
     const buffer = await deflateRaw(request);

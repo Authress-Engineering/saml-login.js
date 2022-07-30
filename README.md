@@ -51,6 +51,29 @@ const { authenticationRequestId } = await saml.getSamlAssertionMetadata(request.
 const { profile } = await saml.validatePostResponse(options, request.body);
 ```
 
+### Generate SAML Delegation URL
+When the user is already logged into your application, and you want to log the user into a third party using their existing authentication. This generates the SAML Payload and URL to redirect the user to
+
+```js
+const { SAML } = require("saml-login");
+const saml = new SAML();
+
+const options = {
+  /** Your platforms IdP Entity ID or URL */
+  issuerEntityId: 'https://my.idp.com',
+  /** Your private key to sign the delegation request. */
+  privateKey: '----BEGIN PRIVATE KEY...',
+  /** Your application's entity Id, should be a fully qualified URL, and must match the application entityId specified to the IdP.  */
+  applicationEntityId: 'https://thirdpart.application.com/',
+  /** Your application's ACS SSO callback URL and must match the one registered with the IdP. This URL will receive the response from the IdP and must return a 302. */
+  applicationAssertionConsumerServiceUrl: 'https://thirdpart.application.com/saml',
+  /** The relevant user that wants to log into the third party application. */
+  userId: 'user_id'
+};
+
+const spDelegationUrl = await saml.generateDelegationUrl(options);
+```
+
 #### Config options details:
 
 - **Core**

@@ -33,6 +33,10 @@ export interface AuthorizeRequestXML extends Record<string, unknown> {
   "samlp:AuthnRequest": XMLInput;
 }
 
+export interface DelegationResponseXML extends Record<string, unknown> {
+  "samlp:Response": XMLInput;
+}
+
 export type CertCallback = (
   callback: (err: Error | null, cert?: string | string[]) => void
 ) => void;
@@ -65,7 +69,6 @@ export interface LogoutRequestXML {
 export interface ServiceMetadataXML {
   EntityDescriptor: {
     [key: string]: XMLValue;
-    SPSSODescriptor: XMLObject;
   };
 }
 
@@ -74,6 +77,24 @@ export interface AuthenticationResponseMetadata {
   authenticationRequestId: string;
 }
 
+export interface DelegationOptions {
+  /** Your platforms IdP Entity ID or URL */
+  issuerEntityId: string;
+  /** Your private key to sign the delegation request. */
+  privateKey: string;
+  /** Your application's entity Id, should be a fully qualified URL, and must match the application entityId specified to the IdP.  */
+  applicationEntityId: string;
+  /** Your application's ACS SSO callback URL and must match the one registered with the IdP. This URL will receive the response from the IdP and must return a 302. */
+  applicationAssertionConsumerServiceUrl: string;
+  /** User ID to create delegation login request for. */
+  userId: string;
+  /** A unique ID generated for the request which can be used to verify later that the response is valid. If not specified an ID will be generated automatically. */
+  authenticationRequestId?: string;
+  /** The date of the request, later this date will be used to verify the response, if it is not provided here, it will automatically generated. */
+  requestTimestamp?: Date;
+  /** State to pass to the application so that it can understand what do with this delegation request, if the SP initiated the flow pass the RelayState here. */
+  state?: string;
+}
 export interface AuthenticationOptions {
   /** The provider's SSO URL. Where to direct the user to login and verify their identity. */
   providerSingleSignOnUrl: string;
