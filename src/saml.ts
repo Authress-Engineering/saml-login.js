@@ -27,8 +27,6 @@ import {
 } from "./xml";
 import { certToPEM, generateUniqueId, keyToPEM } from "./crypto";
 import { dateStringToTimestamp } from "./datetime";
-import { getSigner, getSigningAlgorithm } from "./algorithms";
-import { createPublicKey } from "crypto";
 
 const deflateRaw = util.promisify(zlib.deflateRaw);
 
@@ -370,6 +368,8 @@ class SamlLogin {
       return { authenticationRequestId: inResponseTo };
     }
     const error = Error('SAMLResponse does not have a valid authentication request ID.');
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore 2339
     error.code = 'InvalidAuthenticationRequestId';
     throw error;
   }
