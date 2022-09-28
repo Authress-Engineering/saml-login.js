@@ -369,7 +369,9 @@ class SamlLogin {
     if (inResponseTo) {
       return { authenticationRequestId: inResponseTo };
     }
-    throw Error('SAMLResponse does not have a valid authentication request ID.');
+    const error = Error('SAMLResponse does not have a valid authentication request ID.');
+    error.code = 'InvalidAuthenticationRequestId';
+    throw error;
   }
 
   public async validatePostResponse(options: ValidationOptions, samlEncodedBody: string): Promise<{ profile?: Profile | null; loggedOut?: boolean }> {
