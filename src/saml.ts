@@ -431,6 +431,7 @@ class SamlLogin {
           e.code = 'InvalidCertificate';
           throw e;
         }
+        throw error;
       }
       return await this.processValidlySignedAssertion(assertions[0].toString(), xml, inResponseTo!, options.applicationEntityId);
     }
