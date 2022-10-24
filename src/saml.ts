@@ -416,12 +416,18 @@ class SamlLogin {
       try {
         if (!this.validateSignature(xml, doc.documentElement, certs) && !this.validateSignature(xml, assertions[0], certs)) {
           const error = new Error("Invalid signature");
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore 2339
           error.code = 'InvalidSignature';
           throw error;
         }
       } catch (error) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore 2571
         if (error.code === 'ERR_OSSL_PEM_BAD_BASE64_DECODE') {
           const e = new Error("Invalid certificate");
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore 2339
           e.code = 'InvalidCertificate';
           throw e;
         }
