@@ -90,7 +90,7 @@ const spDelegationUrl = await saml.generateDelegationUrl(options);
 - `forceAuthn`: if set to true, the initial SAML request from the service provider specifies that the IdP should force re-authentication of the user, even if they possess a valid session.
 
 - **Issuer Validation**
-- `expectedProviderIssuer`: if provided, then the IdP issuer will be validated for incoming Logout Requests/Responses. For ADFS this looks like `https://acme_tools.windows.net/deadbeef`
+- `expectedProviderIssuer`: if provided, then the IdP issuer will be validated for incoming Logout Requests/Responses. For ADFS this looks like `https://acme_tools.windows.net/adfs-example`
 - **Logout**
 - `additionalLogoutParams`: dictionary of additional query params to add to 'logout' requests
 - `logoutCallbackUrl`: The value with which to populate the `Location` attribute in the `SingleLogoutService` elements in the generated service provider metadata.

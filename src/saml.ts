@@ -137,7 +137,7 @@ class SamlLogin {
     target.searchParams.set('SAMLResponse', Buffer.from(signedResponse).toString('base64'));
     target.searchParams.set('RelayState', options.state || '');
 
-    // Test verify signature
+    // To test verify signature we just created:
     // const validationOptions = {
     //   providerCertificate: options.publicKey,
     //   expectedProviderIssuer: options.issuerEntityId,
@@ -188,132 +188,6 @@ class SamlLogin {
     target.searchParams.set('SAMLRequest', buffer.toString("base64"));
     return target.toString();
   }
-
-  // public async generateLogoutRequest(user: Profile, options: LogoutOptions) : Promise<string> {
-  //   const id = options.generateUniqueId();
-  //   const instant = generateInstant();
-
-  //   const request = {
-  //     "samlp:LogoutRequest": {
-  //       "@xmlns:samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
-  //       "@xmlns:saml": "urn:oasis:names:tc:SAML:2.0:assertion",
-  //       "@ID": id,
-  //       "@Version": "2.0",
-  //       "@IssueInstant": instant,
-  //       "@Destination": options.logoutUrl,
-  //       "saml:Issuer": {
-  //         "@xmlns:saml": "urn:oasis:names:tc:SAML:2.0:assertion",
-  //         "#text": options.issuer,
-  //       },
-  //       "saml:NameID": {
-  //         "@Format": user!.nameIDFormat,
-  //         "#text": user!.nameID,
-  //       },
-  //     },
-  //   } as LogoutRequestXML;
-
-  //   if (user!.nameQualifier != null) {
-  //     request["samlp:LogoutRequest"]["saml:NameID"]["@NameQualifier"] = user!.nameQualifier;
-  //   }
-
-  //   if (user!.spNameQualifier != null) {
-  //     request["samlp:LogoutRequest"]["saml:NameID"]["@SPNameQualifier"] = user!.spNameQualifier;
-  //   }
-
-  //   if (user!.sessionIndex) {
-  //     request["samlp:LogoutRequest"]["saml2p:SessionIndex"] = {
-  //       "@xmlns:saml2p": "urn:oasis:names:tc:SAML:2.0:protocol",
-  //       "#text": user!.sessionIndex,
-  //     };
-  //   }
-
-  //   await this.cacheProvider.save(id, instant);
-  //   const request = buildXmlBuilderObject(request, false);
-  //   await this._requestToUrl(request, null, "logout");
-  // }
-
-  // public async generateLogoutResponse(user: Profile, options: LogoutOptions) : Promise<string> {
-  //   const id = options.generateUniqueId();
-  //   const instant = generateInstant();
-
-  //   const request = {
-  //     "samlp:LogoutResponse": {
-  //       "@xmlns:samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
-  //       "@xmlns:saml": "urn:oasis:names:tc:SAML:2.0:assertion",
-  //       "@ID": id,
-  //       "@Version": "2.0",
-  //       "@IssueInstant": instant,
-  //       "@Destination": options.logoutUrl,
-  //       "@InResponseTo": logoutRequest.ID,
-  //       "saml:Issuer": {
-  //         "#text": options.issuer,
-  //       },
-  //       "samlp:Status": {
-  //         "samlp:StatusCode": {
-  //           "@Value": "urn:oasis:names:tc:SAML:2.0:status:Success",
-  //         },
-  //       },
-  //     },
-  //   };
-
-  //   return buildXmlBuilderObject(request, false);
-  // }
-
-  // private async _requestToUrl(
-  //   request: string | null | undefined,
-  //   response: string | null,
-  //   operation: string,
-  //   additionalParameters: querystring.ParsedUrlQuery
-  // ): Promise<string> {
-  //   providerSingleSignOnUrl = assertRequired(options.providerSingleSignOnUrl, "providerSingleSignOnUrl is required");
-
-  //   let buffer: Buffer;
-  //   if (options.skipRequestCompression) {
-  //     buffer = Buffer.from((request || response)!, "utf8");
-  //   } else {
-  //     buffer = await deflateRaw((request || response)!);
-  //   }
-
-  //   const base64 = buffer.toString("base64");
-  //   let target = new URL(providerSingleSignOnUrl);
-
-  //   if (operation === "logout") {
-  //     if (options.logoutUrl) {
-  //       target = new URL(options.logoutUrl);
-  //     }
-  //   } else if (operation !== "authorize") {
-  //     throw new Error("Unknown operation: " + operation);
-  //   }
-
-  //   const samlMessage: querystring.ParsedUrlQuery = request
-  //     ? {
-  //         SAMLRequest: base64,
-  //       }
-  //     : {
-  //         SAMLResponse: base64,
-  //       };
-  //   Object.keys(additionalParameters).forEach((k) => {
-  //     samlMessage[k] = additionalParameters[k];
-  //   });
-  //   if (options.privateKey != null) {
-  //     if (!providerSingleSignOnUrl) {
-  //       throw new Error('"providerSingleSignOnUrl" config parameter is required for signed messages');
-  //     }
-
-  //     // sets .SigAlg and .Signature
-  //     this.signRequest(samlMessage);
-  //   }
-  //   Object.keys(samlMessage).forEach((k) => {
-  //     target.searchParams.set(k, samlMessage[k] as string);
-  //   });
-
-  //   return target.toString();
-  // }
-
-  // public async getLogoutResponseUrl(options: LogoutResponseOptions) : Promise<string> {
-  //   const response = this._generateLogoutResponse(samlLogoutRequest);
-  //   return await this._requestToUrl(null, response, 'logout');
-  // }
 
   // This function checks that the |currentNode| in the |fullXml| document contains exactly 1 valid
   //   signature of the |currentNode|.
@@ -383,14 +257,9 @@ class SamlLogin {
       throw new Error("SAMLResponse is not valid base64-encoded XML");
     }
 
-    // TODO: Fix issuer validation on response
-    // if (options.expectedProviderIssuer && !doc.Response.Issuer) {
-    //   throw new Error("Missing SAML issuer");
-    // }
-
-    // if (options.expectedProviderIssuer && doc.Response.Issuer[0]._ !== options.expectedProviderIssuer) {
-    //   throw new Error("Unknown SAML issuer. Expected: " + options.expectedProviderIssuer + " Received: " + doc.Response.Issuer[0]._);
-    // }
+    if (options.expectedProviderIssuer && doc.Response.Issuer && doc.Response.Issuer[0]._ !== options.expectedProviderIssuer) {
+      throw new Error("Unknown SAML issuer. Expected: " + options.expectedProviderIssuer + " Received: " + doc.Response.Issuer[0]._);
+    }
 
     const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
     const inResponseTo = inResponseToNodes && inResponseToNodes[0] && inResponseToNodes[0].nodeValue;
@@ -666,37 +535,6 @@ class SamlLogin {
     }
     return null;
   }
-
-  // private async _getNameId(doc: Node, applicationPrivateKey: string): Promise<NameID> {
-  //   const nameIds = xpath.selectElements(doc, "/*[local-name()='LogoutRequest']/*[local-name()='NameID']");
-  //   const encryptedIds = xpath.selectElements(doc, "/*[local-name()='LogoutRequest']/*[local-name()='EncryptedID']");
-
-  //   if (nameIds.length + encryptedIds.length > 1) {
-  //     throw new Error("Invalid LogoutRequest");
-  //   }
-  //   if (nameIds.length === 1) {
-  //     return promiseWithNameID(nameIds[0]);
-  //   }
-  //   if (encryptedIds.length === 1) {
-  //     assertRequired(applicationPrivateKey, "No decryption key found getting name ID for encrypted SAML response");
-
-  //     const encryptedDataList = xpath.selectElements(encryptedIds[0], "./*[local-name()='EncryptedData']");
-
-  //     if (encryptedDataList.length !== 1) {
-  //       throw new Error("Invalid LogoutRequest");
-  //     }
-  //     const encryptedDataXml = encryptedDataList[0].toString();
-
-  //     const decryptedXml = await decryptXml(encryptedDataXml, applicationPrivateKey);
-  //     const decryptedDoc = parseDomFromString(decryptedXml);
-  //     const decryptedIds = xpath.selectElements(decryptedDoc, "/*[local-name()='NameID']");
-  //     if (decryptedIds.length !== 1) {
-  //       throw new Error("Invalid EncryptedAssertion content");
-  //     }
-  //     return await promiseWithNameID(decryptedIds[0]);
-  //   }
-  //   throw new Error("Missing SAML NameID");
-  // }
 
   /**
    * Process max age assertion and use it if it is more restrictive than the NotOnOrAfter age
