@@ -257,8 +257,11 @@ class SamlLogin {
       throw new Error("SAMLResponse is not valid base64-encoded XML");
     }
 
-    if (options.expectedProviderIssuer && doc.Response.Issuer && doc.Response.Issuer[0]._ !== options.expectedProviderIssuer) {
-      throw new Error("Unknown SAML issuer. Expected: " + options.expectedProviderIssuer + " Received: " + doc.Response.Issuer[0]._);
+    const issuersXml = xpath.selectElements(doc, "/*[local-name()='Response']/*[local-name()='Issuer']");
+    const issuerResult = await parseXml2JsFromString(issuersXml.toString());
+
+    if (options.expectedProviderIssuer && issuerResult && issuerResult.Issuer && issuerResult.Issuer._ && issuerResult.Issuer._ !== options.expectedProviderIssuer) {
+      throw new Error("Unknown SAML issuer. Expected: " + options.expectedProviderIssuer + " Received: " + issuerResult.Issuer._);
     }
 
     const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");

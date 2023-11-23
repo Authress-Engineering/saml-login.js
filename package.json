@@ -46,7 +46,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint --ext .ts \"**/*.ts\" --cache",
-    "test": "npm run lint && tsc & mocha"
+    "test": "npm run lint && tsc -p tsconfig-test.json & mocha"
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.7",
@@ -56,6 +56,7 @@
     "xmlbuilder": "^15.1"
   },
   "devDependencies": {
+    "@types/chai": "^4.3.11",
     "@types/mocha": "^8.2.2",
     "@types/node": "^14.14.44",
     "@types/qs": "^6.9.6",
@@ -67,6 +68,7 @@
     "@typescript-eslint/eslint-plugin": "^4.23.0",
     "@typescript-eslint/parser": "^4.23.0",
     "body-parser": "^1.19.0",
+    "chai": "^4.3.10",
     "choma": "^1.2.1",
     "ci-build-tools": "^1.0.13",
     "commander": "^8.1.0",

@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "",
+    "rootDirs": ["src", "test"]
+  },
+  "exclude": [
+    "node_modules",
+    "node-saml",
+    "docs",
+    "lib",
+    "multiSamlStrategy.js",
+    "multiSamlStrategy.d.ts",
+    "make.js"
+  ]
+}

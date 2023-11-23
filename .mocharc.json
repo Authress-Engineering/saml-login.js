@@ -1,10 +1,10 @@
 {
   "diff": true,
-  "extension": "spec.ts",
+  "extension": "test.ts",
   "package": "./package.json",
   "recursive": true,
   "reporter": "spec",
   "require": ["choma", "ts-node/register"],
-  "files": "test/**/*.spec.ts",
-  "watch-files": "test/**/*.spec.ts"
+  "files": "test/*.test.ts",
+  "watch-files": "test/*.test.ts"
 }
