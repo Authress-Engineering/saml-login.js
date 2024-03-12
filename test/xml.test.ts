@@ -1,7 +1,8 @@
 import { expect } from 'chai';
 import { parseDomFromString, parseXml2JsFromString, xpath } from "../src/xml";
 
-it('issuer validation test', async () => {
+describe("xml.ts", () => {
+  it('issuer validation test', async () => {
     const xml = `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_8e8dc5f69a98cc4c1ff3427e5ce34606fd672f91e6" Version="2.0" IssueInstant="2014-07-17T01:01:48Z" Destination="http://sp.example.com/demo1/index.php?acs" InResponseTo="AUTHRESS_4fee3b046395c4e751011e97f8900b5273d56685">
     <saml:Issuer>http://idp.example.com/metadata.php</saml:Issuer>
     <samlp:Status>
@@ -48,4 +49,5 @@ it('issuer validation test', async () => {
     const issuersXml = xpath.selectElements(doc, "/*[local-name()='Response']/*[local-name()='Issuer']");
     const issuerResult = await parseXml2JsFromString(issuersXml.toString());
     expect(issuerResult.Issuer._).to.eql('http://idp.example.com/metadata.php');
+  });
 });

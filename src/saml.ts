@@ -13,7 +13,8 @@ import {
   AuthenticationOptions,
   DelegationOptions,
   ValidationOptions,
-  AuthenticationResponseMetadata
+  AuthenticationResponseMetadata,
+  SamlRequestMetadata
 } from "./types";
 import { assertRequired, signXmlResponse } from "./utility";
 import {
@@ -29,6 +30,7 @@ import { certToPEM, generateUniqueId, keyToPEM } from "./crypto";
 import { dateStringToTimestamp } from "./datetime";
 
 const deflateRaw = util.promisify(zlib.deflateRaw);
+const inflateRaw = util.promisify(zlib.inflateRaw);
 
 // async function processValidlySignedSamlLogout(
 //   doc: XMLOutput,
@@ -225,6 +227,20 @@ class SamlLogin {
     return certs && certs.filter(c => c).some((certToCheck) => {
       return validateXmlSignatureForCert(signature, certToPEM(certToCheck), fullXml, currentNode);
     });
+  }
+
+  public async parseSamlRequestMetadata(samlEncodedBody: string): Promise<SamlRequestMetadata> {
+    const container = new URLSearchParams(samlEncodedBody);
+    const buffer = Buffer.from(container.get('SAMLRequest') as string, "base64");
+    const xmlBuffer = await inflateRaw(buffer);
+    // eslint-disable-next-line no-console
+    const parsedResult = await parseXml2JsFromString(xmlBuffer.toString());
+    return {
+      requestedIssuerEntityId: parsedResult.AuthnRequest.$.Destination,
+      applicationAssertionConsumerServiceUrl: parsedResult.AuthnRequest.$.AssertionConsumerServiceURL,
+      requestTimestap: new Date(parsedResult.AuthnRequest.$.IssueInstant),
+      applicationEntityId: parsedResult.AuthnRequest.Issuer[0]._
+    };
   }
 
   public async getSamlAssertionMetadata(samlEncodedBody: string) : Promise<AuthenticationResponseMetadata> {

@@ -77,6 +77,13 @@ export interface AuthenticationResponseMetadata {
   authenticationRequestId: string;
 }
 
+export interface SamlRequestMetadata {
+  requestedIssuerEntityId: string;
+  applicationAssertionConsumerServiceUrl: string;
+  requestTimestap?: Date;
+  applicationEntityId: string;
+}
+
 export interface DelegationOptions {
   /** Your platforms IdP Entity ID or URL */
   issuerEntityId: string;
