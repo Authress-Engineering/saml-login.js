@@ -73,8 +73,12 @@ export interface ServiceMetadataXML {
 }
 
 export interface AuthenticationResponseMetadata {
-  /** A unique ID generated for the request */
+  /** A unique ID generated for the SAML request-response exchange. */
   authenticationRequestId: string;
+  /** The IdP issuer where the response came from. */
+  issuerEntityId: string;
+  /** Expected target application the SAML response is intended for on the Service Provider side. */
+  applicationEntityId: string;
 }
 
 export interface SamlRequestMetadata {

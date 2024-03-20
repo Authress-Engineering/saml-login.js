@@ -233,7 +233,6 @@ class SamlLogin {
     const container = new URLSearchParams(samlEncodedBody);
     const buffer = Buffer.from(container.get('SAMLRequest') as string, "base64");
     const xmlBuffer = await inflateRaw(buffer);
-    // eslint-disable-next-line no-console
     const parsedResult = await parseXml2JsFromString(xmlBuffer.toString());
     return {
       requestedIssuerEntityId: parsedResult.AuthnRequest.$.Destination,
@@ -244,23 +243,24 @@ class SamlLogin {
   }
 
   public async getSamlAssertionMetadata(samlEncodedBody: string) : Promise<AuthenticationResponseMetadata> {
-    const container = querystring.decode(samlEncodedBody);
-    const xml = Buffer.from(container.SAMLResponse as string, "base64").toString("utf8");
-    const doc = parseDomFromString(xml);
-
-    if (!Object.prototype.hasOwnProperty.call(doc, "documentElement")) {
-      throw new Error("SAMLResponse is not valid base64-encoded XML");
-    }
-
-    const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
-    const inResponseTo = inResponseToNodes && inResponseToNodes[0] && inResponseToNodes[0].nodeValue;
+    const container = new URLSearchParams(samlEncodedBody);
+    const xml = Buffer.from(container.get('SAMLResponse') as string, "base64").toString('utf8');
+    const parsedResult = await parseXml2JsFromString(xml);
+    const inResponseTo = parsedResult?.Response?.$?.InResponseTo;
     if (inResponseTo) {
-      return { authenticationRequestId: inResponseTo };
+      return {
+        issuerEntityId: parsedResult.Response.Issuer._,
+        applicationEntityId: parsedResult.Response.$.Destination,
+        authenticationRequestId: inResponseTo
+      };
     }
     const error = Error('SAMLResponse does not have a valid authentication request ID.');
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore 2339
     error.code = 'InvalidAuthenticationRequestId';
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore 2339
+    error.parsedResult = parsedResult;
     throw error;
   }
 
