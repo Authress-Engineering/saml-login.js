@@ -246,8 +246,10 @@ class SamlLogin {
     const container = new URLSearchParams(samlEncodedBody);
     const xml = Buffer.from(container.get('SAMLResponse') as string, "base64").toString('utf8');
     const parsedResult = await parseXml2JsFromString(xml);
-    const inResponseTo = parsedResult?.Response?.$?.InResponseTo;
-    if (inResponseTo) {
+    const inResponseToRaw = parsedResult?.Response?.$?.InResponseTo;
+    if (inResponseToRaw) {
+      // * If the source idp encoded ~ as _x007E_ then swap it back, they could be also incorrectly encoding other values, but it doesn't seem like there is a standard on this.
+      const inResponseTo = inResponseToRaw.includes('~') ? inResponseToRaw : inResponseToRaw.replace(/_x007E_/gi, '~');
       return {
         issuerEntityId: parsedResult.Response.Issuer._,
         applicationEntityId: parsedResult.Response.$.Destination,
