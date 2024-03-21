@@ -433,6 +433,8 @@ class SamlLogin {
         // * If the source idp encoded ~ as _x007E_ then swap it back, they could be also incorrectly encoding other values, but it doesn't seem like there is a standard on this.
         if (subjectInResponseTo != inResponseTo && subjectInResponseTo?.replace(/_x007E_/gi, '~') !== inResponseTo?.replace(/_x007E_/gi, '~')) {
           const error = new Error("InResponseTo is not valid");
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore 2339
           error.code = 'InvalidAuthenticationRequestId';
           throw error;
         }
