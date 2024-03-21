@@ -263,23 +263,14 @@ class SamlLogin {
     const xml = Buffer.from(samlResponse, "base64").toString('utf8');
     const parsedResult = await parseXml2JsFromString(xml);
     const inResponseToRaw = parsedResult?.Response?.$?.InResponseTo;
-    if (inResponseToRaw) {
-      // * If the source idp encoded ~ as _x007E_ then swap it back, they could be also incorrectly encoding other values, but it doesn't seem like there is a standard on this.
-      const inResponseTo = inResponseToRaw.includes('~') ? inResponseToRaw : inResponseToRaw.replace(/_x007E_/gi, '~');
-      return {
-        issuerEntityId: parsedResult.Response.Issuer._,
-        applicationEntityId: parsedResult.Response.$.Destination,
-        authenticationRequestId: inResponseTo
-      };
-    }
-    const error = Error('SAMLResponse does not have a valid authentication request ID.');
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore 2339
-    error.code = 'InvalidAuthenticationRequestId';
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore 2339
-    error.parsedResult = parsedResult;
-    throw error;
+    
+    // * If the source idp encoded ~ as _x007E_ then swap it back, they could be also incorrectly encoding other values, but it doesn't seem like there is a standard on this.
+    const inResponseTo = inResponseToRaw?.includes('~') ? inResponseToRaw : inResponseToRaw?.replace(/_x007E_/gi, '~');
+    return {
+      issuerEntityId: parsedResult.Response.Issuer._,
+      applicationEntityId: parsedResult.Response.$.Destination,
+      authenticationRequestId: inResponseTo
+    };
   }
 
   public async validatePostResponse(options: ValidationOptions, samlEncodedBody: string): Promise<{ profile?: Profile | null; loggedOut?: boolean }> {
