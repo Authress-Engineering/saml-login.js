@@ -231,7 +231,15 @@ class SamlLogin {
 
   public async parseSamlRequestMetadata(samlEncodedBody: string): Promise<SamlRequestMetadata> {
     const container = new URLSearchParams(samlEncodedBody);
-    const buffer = Buffer.from(container.get('SAMLRequest') as string, "base64");
+    const samlRequest = container.get('SAMLRequest') as string;
+    if (!samlRequest) {
+      const error = Error('SAMLRequest not specified');
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore 2339
+      error.code = 'InvalidSamlRequest';
+      throw error;
+    }
+    const buffer = Buffer.from(samlRequest, "base64");
     const xmlBuffer = await inflateRaw(buffer);
     const parsedResult = await parseXml2JsFromString(xmlBuffer.toString());
     return {
@@ -244,7 +252,15 @@ class SamlLogin {
 
   public async getSamlAssertionMetadata(samlEncodedBody: string) : Promise<AuthenticationResponseMetadata> {
     const container = new URLSearchParams(samlEncodedBody);
-    const xml = Buffer.from(container.get('SAMLResponse') as string, "base64").toString('utf8');
+    const samlResponse = container.get('SAMLResponse') as string;
+    if (!samlResponse) {
+      const error = Error('SAMLResponse not specified');
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore 2339
+      error.code = 'InvalidSamlResponse';
+      throw error;
+    }
+    const xml = Buffer.from(samlResponse, "base64").toString('utf8');
     const parsedResult = await parseXml2JsFromString(xml);
     const inResponseToRaw = parsedResult?.Response?.$?.InResponseTo;
     if (inResponseToRaw) {
