@@ -430,8 +430,11 @@ class SamlLogin {
     if (subjectConfirmation && confirmData && confirmData.$) {
       const subjectInResponseTo = confirmData.$.InResponseTo;
       if (subjectInResponseTo) {
-        if (subjectInResponseTo != inResponseTo) {
-          throw new Error("InResponseTo is not valid");
+        // * If the source idp encoded ~ as _x007E_ then swap it back, they could be also incorrectly encoding other values, but it doesn't seem like there is a standard on this.
+        if (subjectInResponseTo != inResponseTo && subjectInResponseTo?.replace(/_x007E_/gi, '~') !== inResponseTo?.replace(/_x007E_/gi, '~')) {
+          const error = new Error("InResponseTo is not valid");
+          error.code = 'InvalidAuthenticationRequestId';
+          throw error;
         }
       }
     }
