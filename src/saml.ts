@@ -267,7 +267,7 @@ class SamlLogin {
     // * If the source idp encoded ~ as _x007E_ then swap it back, they could be also incorrectly encoding other values, but it doesn't seem like there is a standard on this.
     const inResponseTo = inResponseToRaw?.includes('~') ? inResponseToRaw : inResponseToRaw?.replace(/_x007E_/gi, '~');
     return {
-      issuerEntityId: parsedResult.Response.Issuer._,
+      issuerEntityId: parsedResult.Response.Issuer[0]._,
       applicationEntityId: parsedResult.Response.$.Destination,
       authenticationRequestId: inResponseTo
     };
@@ -285,8 +285,9 @@ class SamlLogin {
     const issuersXml = xpath.selectElements(doc, "/*[local-name()='Response']/*[local-name()='Issuer']");
     const issuerResult = await parseXml2JsFromString(issuersXml.toString());
 
-    if (options.expectedProviderIssuer && issuerResult && issuerResult.Issuer && issuerResult.Issuer._ && issuerResult.Issuer._ !== options.expectedProviderIssuer) {
-      throw new Error("Unknown SAML issuer. Expected: " + options.expectedProviderIssuer + " Received: " + issuerResult.Issuer._);
+    const issuer = issuerResult?.Issuer?._ || issuerResult?.Issuer?.[0]?._;
+    if (options.expectedProviderIssuer && issuer && issuer !== options.expectedProviderIssuer) {
+      throw new Error("Unknown SAML issuer. Expected: " + options.expectedProviderIssuer + " Received: " + issuer);
     }
 
     const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
