@@ -287,7 +287,9 @@ class SamlLogin {
 
     const issuer = issuerResult?.Issuer?._ || issuerResult?.Issuer?.[0]?._;
     if (options.expectedProviderIssuer && issuer && issuer !== options.expectedProviderIssuer) {
-      throw new Error("Unknown SAML issuer. Expected: " + options.expectedProviderIssuer + " Received: " + issuer);
+      const error = new Error("Unknown SAML issuer. Expected: " + options.expectedProviderIssuer + " Received: " + issuer);
+      error.code = 'InvalidIssuer';
+      throw error
     }
 
     const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
