@@ -288,6 +288,8 @@ class SamlLogin {
     const issuer = issuerResult?.Issuer?._ || issuerResult?.Issuer?.[0]?._;
     if (options.expectedProviderIssuer && issuer && issuer !== options.expectedProviderIssuer) {
       const error = new Error("Unknown SAML issuer. Expected: " + options.expectedProviderIssuer + " Received: " + issuer);
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore 2339
       error.code = 'InvalidIssuer';
       throw error
     }
