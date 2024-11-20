@@ -125,9 +125,7 @@ export const signXml = (
 
   const transforms = options.xmlSignatureTransforms || defaultTransforms;
   const sig = new xmlCrypto.SignedXml();
-  if (options.signatureAlgorithm != null) {
-    sig.signatureAlgorithm = algorithms.getSigningAlgorithm(options.signatureAlgorithm);
-  }
+  sig.signatureAlgorithm = algorithms.getSigningAlgorithm(options.signatureAlgorithm);
   sig.addReference(xpath, transforms, algorithms.getDigestAlgorithm(options.digestAlgorithm));
   sig.signingKey = options.privateKey;
   sig.computeSignature(xml, {
