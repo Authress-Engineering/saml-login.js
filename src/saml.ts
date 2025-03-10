@@ -18,7 +18,6 @@ import {
 } from "./types";
 import { assertRequired, signXmlResponse } from "./utility";
 import {
-  buildXml2JsObject,
   buildXmlBuilderObject,
   decryptXml,
   parseDomFromString,
@@ -261,7 +260,22 @@ class SamlLogin {
       throw error;
     }
     const xml = Buffer.from(samlResponse, "base64").toString('utf8');
-    const parsedResult = await parseXml2JsFromString(xml);
+    const parsedResult: XMLOutput = await parseXml2JsFromString(xml);
+
+    const response = parsedResult.Response;
+    const status = response.Status;
+    const statusCode = status?.[0].StatusCode;
+
+    if (statusCode && statusCode[0].$.Value) {
+      const msgType = statusCode[0].$.Value.match(/[^:]*$/)[0];
+      if (msgType != "Success") {
+        const statusCodeResolvedErrorCode = statusCode[0].StatusCode?.[0].$.Value.match(/[^:]*$/)[0];
+        const statusMessage = status[0].StatusMessage?.[0]._;
+        const errorMessage = statusMessage ?? statusCodeResolvedErrorCode ?? 'unspecified';
+        throw new ErrorWithXmlStatus("SAML provider returned error: " + errorMessage, statusCodeResolvedErrorCode);
+      }
+    }
+
     const inResponseToRaw = parsedResult?.Response?.$?.InResponseTo;
     
     // * If the source idp encoded ~ as _x007E_ then swap it back, they could be also incorrectly encoding other values, but it doesn't seem like there is a standard on this.
@@ -293,15 +307,13 @@ class SamlLogin {
       error.code = 'InvalidIssuer';
       throw error
     }
-
-    const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
-    const inResponseTo = inResponseToNodes && inResponseToNodes[0] && inResponseToNodes[0].nodeValue;
-    if (!inResponseTo) {
-      throw new Error("InResponseTo is not valid");
-    }
     
     if (options.requestTimestamp && new Date().getTime() > options.requestTimestamp.getTime() + this.requestIdExpirationPeriodMs) {
-      throw new Error("ExpiredRequest");
+      const error = new Error("ExpiredRequest");
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore 2339
+      error.code = 'ExpiredRequest';
+      throw error;
     }
     const certs: string[] = !Array.isArray(options.providerCertificate) ? [options.providerCertificate] : options.providerCertificate;
 
@@ -311,7 +323,11 @@ class SamlLogin {
     if (assertions.length + encryptedAssertions.length > 1) {
       // There's no reason I know of that we want to handle multiple assertions, and it seems like a
       //   potential risk vector for signature scope issues, so treat this as an invalid signature
-      throw new Error("Invalid signature: multiple assertions");
+      const error = new Error("Invalid signature: multiple assertions");
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore 2339
+      error.code = 'InvalidSignature';
+      throw error;
     }
 
     if (assertions.length) {
@@ -335,6 +351,17 @@ class SamlLogin {
         }
         throw error;
       }
+
+      const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
+      const inResponseTo = inResponseToNodes && inResponseToNodes[0] && inResponseToNodes[0].nodeValue;
+      if (!inResponseTo) {
+        const error = new Error("InResponseTo is not valid");
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore 2339
+        error.code = 'InvalidResponse';
+        throw error;
+      }
+
       return await this.processValidlySignedAssertion(assertions[0].toString(), xml, inResponseTo!, options.applicationEntityId);
     }
 
@@ -352,6 +379,16 @@ class SamlLogin {
         throw new Error("Invalid signature from encrypted assertion");
       }
 
+      const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
+      const inResponseTo = inResponseToNodes && inResponseToNodes[0] && inResponseToNodes[0].nodeValue;
+      if (!inResponseTo) {
+        const error = new Error("InResponseTo is not valid");
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore 2339
+        error.code = 'InvalidResponse';
+        throw error;
+      }
+
       return await this.processValidlySignedAssertion(decryptedAssertions[0].toString(), xml, inResponseTo!, options.applicationEntityId);
     }
 
@@ -362,6 +399,17 @@ class SamlLogin {
 
     const xmlJsDoc: XMLOutput = await parseXml2JsFromString(xml);
     if (xmlJsDoc.LogoutResponse) {
+
+      const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
+      const inResponseTo = inResponseToNodes && inResponseToNodes[0] && inResponseToNodes[0].nodeValue;
+      if (!inResponseTo) {
+        const error = new Error("InResponseTo is not valid");
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore 2339
+        error.code = 'InvalidResponse';
+        throw error;
+      }
+
       return { profile: null, loggedOut: true };
     }
 
@@ -376,6 +424,17 @@ class SamlLogin {
     if (statusCode && statusCode[0].$.Value === "urn:oasis:names:tc:SAML:2.0:status:Responder") {
       const nestedStatusCode = statusCode[0].StatusCode;
       if (nestedStatusCode && nestedStatusCode[0].$.Value === "urn:oasis:names:tc:SAML:2.0:status:NoPassive") {
+
+        const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
+        const inResponseTo = inResponseToNodes && inResponseToNodes[0] && inResponseToNodes[0].nodeValue;
+        if (!inResponseTo) {
+          const error = new Error("InResponseTo is not valid");
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore 2339
+          error.code = 'InvalidResponse';
+          throw error;
+        }
+
         return { profile: null, loggedOut: false };
       }
     }
@@ -386,15 +445,21 @@ class SamlLogin {
     if (statusCode && statusCode[0].$.Value) {
       const msgType = statusCode[0].$.Value.match(/[^:]*$/)[0];
       if (msgType != "Success") {
-        let msg = "unspecified";
-        if (status[0].StatusMessage) {
-          msg = status[0].StatusMessage[0]._;
-        } else if (statusCode[0].StatusCode) {
-          msg = statusCode[0].StatusCode[0].$.Value.match(/[^:]*$/)[0];
-        }
-        const statusXml = buildXml2JsObject("Status", status[0]);
-        throw new ErrorWithXmlStatus("SAML provider returned " + msgType + " error: " + msg, statusXml);
+        const statusCodeResolvedErrorCode = statusCode[0].StatusCode?.[0].$.Value.match(/[^:]*$/)[0];
+        const statusMessage = status[0].StatusMessage?.[0]._;
+        const errorMessage = statusMessage ?? statusCodeResolvedErrorCode ?? 'unspecified';
+        throw new ErrorWithXmlStatus("SAML provider returned error: " + errorMessage, statusCodeResolvedErrorCode);
       }
+    }
+
+    const inResponseToNodes = xpath.selectAttributes(doc, "/*[local-name()='Response']/@InResponseTo");
+    const inResponseTo = inResponseToNodes && inResponseToNodes[0] && inResponseToNodes[0].nodeValue;
+    if (!inResponseTo) {
+      const error = new Error("InResponseTo is not valid");
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore 2339
+      error.code = 'InvalidResponse';
+      throw error;
     }
 
     throw new Error("Missing valid SAML assertion");

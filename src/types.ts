@@ -146,7 +146,8 @@ export interface Profile {
 }
 
 export class ErrorWithXmlStatus extends Error {
-  constructor(message: string, public readonly xmlStatus: string) {
+  constructor(message: string, public readonly code: string) {
     super(message);
+    this.code = code;
   }
 }
