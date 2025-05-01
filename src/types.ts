@@ -143,6 +143,7 @@ export interface Profile {
   nameIDFormat?: string;
   nameQualifier?: string;
   email?: string;
+  name?: string;
   givenName?: string;
   familyName?: string;
   picture?: string;
