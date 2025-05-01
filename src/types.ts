@@ -143,6 +143,9 @@ export interface Profile {
   nameIDFormat?: string;
   nameQualifier?: string;
   email?: string;
+  givenName?: string;
+  familyName?: string;
+  picture?: string;
 }
 
 export class ErrorWithXmlStatus extends Error {
