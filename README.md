@@ -3,7 +3,7 @@
 </p>
 
 # Full SAML2.0 integration for NodeJS
-[![npm version](https://badge.fury.io/js/saml-login.svg)](http://badge.fury.io/js/saml-login)
+[![npm version](https://badge.fury.io/js/saml-login.svg)](https://badge.fury.io/js/saml-login)
 
 This is a [SAML 2.0](http://en.wikipedia.org/wiki/SAML_2.0) authentication provider for applications, service providers, and IdP for Node.js
 
