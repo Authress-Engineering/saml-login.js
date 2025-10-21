@@ -108,9 +108,14 @@ class SamlLogin {
             }
           },
           "saml:AttributeStatement": {
-            "saml:Attribute": {
-              "@Name": "userId"
-            }
+            "saml:Attribute": [{
+                "@Name": "userId",
+                "@NameFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+                "saml:AttributeValue": options.userId
+            }].concat(options.attributeMappings?.map(m => ({
+              "@Name": m.key,
+              "saml:AttributeValue": m.value
+            })))
           },
           "saml:AuthnStatement": {
             "@AuthnInstant": instantDateTime.toISOString(),
@@ -122,10 +127,6 @@ class SamlLogin {
         }
       },
     };
-
-    if (options.state) {
-      xmlResponse['samlp:Response']['@InResponseTo'] = options.state;
-    }
 
     const unsignedResponse = buildXmlBuilderObject(xmlResponse, false);
 
@@ -244,7 +245,7 @@ class SamlLogin {
     return {
       requestedIssuerEntityId: parsedResult.AuthnRequest.$.Destination,
       applicationAssertionConsumerServiceUrl: parsedResult.AuthnRequest.$.AssertionConsumerServiceURL,
-      requestTimestap: new Date(parsedResult.AuthnRequest.$.IssueInstant),
+      requestTimestamp: new Date(parsedResult.AuthnRequest.$.IssueInstant),
       applicationEntityId: parsedResult.AuthnRequest.Issuer[0]._
     };
   }

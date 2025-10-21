@@ -84,10 +84,16 @@ export interface AuthenticationResponseMetadata {
 export interface SamlRequestMetadata {
   requestedIssuerEntityId: string;
   applicationAssertionConsumerServiceUrl: string;
-  requestTimestap?: Date;
+  requestTimestamp?: Date;
   applicationEntityId: string;
 }
 
+export interface Attribute {
+  /** Populates the @Name property of the Attribute. */
+  key: string;
+  /** Populates the value of the Attribute. */
+  value: string;
+}
 export interface DelegationOptions {
   /** Your platforms IdP Entity ID or URL */
   issuerEntityId: string;
@@ -105,6 +111,9 @@ export interface DelegationOptions {
   requestTimestamp?: Date;
   /** State to pass to the application so that it can understand what do with this delegation request, if the SP initiated the flow pass the RelayState here. */
   state?: string;
+
+  /** List of attributes to add to the generated SAML assertion into the AttributeStatement */
+  attributeMappings?: Array<Attribute>;
 }
 export interface AuthenticationOptions {
   /** The provider's SSO URL. Where to direct the user to login and verify their identity. */

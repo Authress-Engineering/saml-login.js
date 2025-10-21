@@ -69,7 +69,7 @@ describe('saml.ts', () => {
         requestedIssuerEntityId: identityProviderIssuerUrl,
         applicationEntityId: applicationEntityId,
         applicationAssertionConsumerServiceUrl: requestingApplicationUrl,
-        requestTimestap: date
+        requestTimestamp: date
       };
       expect(result).to.eql(expectedResult);
     });
