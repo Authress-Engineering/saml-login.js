@@ -115,7 +115,7 @@ class SamlLogin {
             }].concat(options.attributeMappings?.map(m => ({
               "@Name": m.key,
               "saml:AttributeValue": m.value
-            })))
+            })) || [])
           },
           "saml:AuthnStatement": {
             "@AuthnInstant": instantDateTime.toISOString(),
