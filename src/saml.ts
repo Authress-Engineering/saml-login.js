@@ -14,7 +14,8 @@ import {
   DelegationOptions,
   ValidationOptions,
   AuthenticationResponseMetadata,
-  SamlRequestMetadata
+  SamlRequestMetadata,
+  XMLValue
 } from "./types";
 import { assertRequired, signXmlResponse } from "./utility";
 import {
@@ -112,7 +113,7 @@ class SamlLogin {
                 "@Name": "userId",
                 "@NameFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
                 "saml:AttributeValue": options.userId
-            }].concat(options.attributeMappings?.map(m => ({
+            } as XMLValue].concat(options.attributeMappings?.map(m => ({
               "@Name": m.key,
               "saml:AttributeValue": m.value
             })) || [])
