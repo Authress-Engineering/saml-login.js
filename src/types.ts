@@ -1,5 +1,8 @@
 export type SignatureAlgorithm = "sha1" | "sha256" | "sha512";
-export enum SignatureTarget { 'Response', 'Assertion' };
+export enum SignatureTarget {
+  'Response' = 'Response',
+  'Assertion' = 'Assertion'
+};
 
 export interface SamlSigningOptions {
   privateKey: string | Buffer;
