@@ -1,10 +1,12 @@
 export type SignatureAlgorithm = "sha1" | "sha256" | "sha512";
+export enum SignatureTarget { 'Response', 'Assertion' };
 
 export interface SamlSigningOptions {
   privateKey: string | Buffer;
   signatureAlgorithm?: SignatureAlgorithm;
   xmlSignatureTransforms?: string[];
   digestAlgorithm?: string;
+  signatureTarget: SignatureTarget;
 }
 
 export const isValidSamlSigningOptions = (
@@ -111,6 +113,9 @@ export interface DelegationOptions {
   requestTimestamp?: Date;
   /** State to pass to the application so that it can understand what do with this delegation request, if the SP initiated the flow pass the RelayState here. */
   state?: string;
+
+  /** The element of the response that should be signed. Response and Assertion are two options. Some providers require one, while others require a different one. */
+  signatureTarget?: SignatureTarget;
 
   /** List of attributes to add to the generated SAML assertion into the AttributeStatement */
   attributeMappings?: Array<Attribute>;

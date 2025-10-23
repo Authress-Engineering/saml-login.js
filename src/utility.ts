@@ -1,4 +1,4 @@
-import { SamlSigningOptions } from "./types";
+import { SamlSigningOptions, SignatureTarget } from "./types";
 import { signXml } from "./xml";
 
 export function assertRequired<T>(value: T | null | undefined, error?: string): T {
@@ -10,13 +10,21 @@ export function assertRequired<T>(value: T | null | undefined, error?: string): 
 }
 
 export function signXmlResponse(samlMessage: string, options: SamlSigningOptions): string {
-  const responseXpath =
-    '//*[local-name(.)="Response" and namespace-uri(.)="urn:oasis:names:tc:SAML:2.0:protocol"]';
+  const signatureTargetXPaths = {
+    [SignatureTarget.Assertion]: {
+      responseXpath: "//*[local-name()='Response' and namespace-uri()='urn:oasis:names:tc:SAML:2.0:protocol']/*[local-name()='Assertion' and namespace-uri()='urn:oasis:names:tc:SAML:2.0:assertion']",
+      targetLocationXPath: "//*[local-name()='Response' and namespace-uri()='urn:oasis:names:tc:SAML:2.0:protocol']/*[local-name()='Assertion' and namespace-uri()='urn:oasis:names:tc:SAML:2.0:assertion']/*[local-name()='Issuer' and namespace-uri()='urn:oasis:names:tc:SAML:2.0:assertion']"
+    },
+    [SignatureTarget.Response]: {
+      responseXpath: '//*[local-name(.)="Response" and namespace-uri(.)="urn:oasis:names:tc:SAML:2.0:protocol"]',
+      targetLocationXPath: "//*[local-name()='Response' and namespace-uri()='urn:oasis:names:tc:SAML:2.0:protocol']/*[local-name()='Issuer' and namespace-uri()='urn:oasis:names:tc:SAML:2.0:assertion']"
+    }
+  };
 
   return signXml(
     samlMessage,
-    responseXpath,
-    { reference: responseXpath, action: "append" },
+    signatureTargetXPaths[options.signatureTarget].responseXpath,
+    { reference: signatureTargetXPaths[options.signatureTarget].targetLocationXPath, action: "after" },
     options
   );
 }

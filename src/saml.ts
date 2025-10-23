@@ -15,7 +15,8 @@ import {
   ValidationOptions,
   AuthenticationResponseMetadata,
   SamlRequestMetadata,
-  XMLValue
+  XMLValue,
+  SignatureTarget
 } from "./types";
 import { assertRequired, signXmlResponse } from "./utility";
 import {
@@ -132,7 +133,8 @@ class SamlLogin {
     const unsignedResponse = buildXmlBuilderObject(xmlResponse, false);
 
     const signingOptions = {
-      privateKey: keyToPEM(options.privateKey)
+      privateKey: keyToPEM(options.privateKey),
+      signatureTarget: options.signatureTarget || SignatureTarget.Response
     };
     const signedResponse = signXmlResponse(unsignedResponse, signingOptions)
 
