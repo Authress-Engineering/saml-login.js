@@ -264,11 +264,22 @@ class SamlLogin {
       throw error;
     }
     const xml = Buffer.from(samlResponse, "base64").toString('utf8');
-    const parsedResult: XMLOutput = await parseXml2JsFromString(xml);
+    let parsedResult: XMLOutput;
+    try {
+      parsedResult = await parseXml2JsFromString(xml);
+    } catch (parseError) {
+      const typedParseError = parseError as Error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = Error(`SAMLResponse failed to parse: ${typedParseError.message} (${(typedParseError as any).code} - ${typedParseError.name})`);
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore 2339
+      error.code = 'InvalidSamlResponse';
+      throw error;
+    }
 
     const response = parsedResult.Response;
     if (!response) {
-      const error = Error('SAMLResponse not specified');
+      const error = Error('SAMLResponse.Response not specified');
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore 2339
       error.code = 'InvalidSamlResponse';
