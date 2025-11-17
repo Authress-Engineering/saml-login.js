@@ -267,6 +267,13 @@ class SamlLogin {
     const parsedResult: XMLOutput = await parseXml2JsFromString(xml);
 
     const response = parsedResult.Response;
+    if (!response) {
+      const error = Error('SAMLResponse not specified');
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore 2339
+      error.code = 'InvalidSamlResponse';
+      throw error;
+    }
     const status = response.Status;
     const statusCode = status?.[0].StatusCode;
 
@@ -418,8 +425,8 @@ class SamlLogin {
     }
 
     const response = xmlJsDoc.Response;
-    const assertion = response.Assertion;
-    const status = response.Status;
+    const assertion = response?.Assertion;
+    const status = response?.Status;
     if (assertion || !status) {
       throw new Error("Missing valid SAML assertion");
     }
