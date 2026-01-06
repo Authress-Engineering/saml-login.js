@@ -81,11 +81,14 @@ export const validateXmlSignatureForCert = (
   // We expect each signature to contain exactly one reference to the top level of the xml we
   //   are validating, so if we see anything else, reject.
   if (sig.references.length != 1) return false;
-  const refUri = sig.references[0].uri!;
-  const refId = refUri[0] === "#" ? refUri.substring(1) : refUri;
+  const refUri = sig.references[0].uri;
+  const refId = refUri?.[0] === "#" ? refUri.substring(1) : refUri;
   // If we can't find the reference at the top level, reject
-  const idAttribute = currentNode.getAttribute("ID") ? "ID" : "Id";
-  if (currentNode.getAttribute(idAttribute) != refId) return false;
+  const idAttribute = currentNode.getAttribute("ID") && "ID" || currentNode.getAttribute("Id") && "Id" || 'ID';
+  if (!currentNode.getAttribute(idAttribute) || currentNode.getAttribute(idAttribute) != refId) {
+    return false;
+  }
+
   // If we find any extra referenced nodes, reject.  (xml-crypto only verifies one digest, so
   //   multiple candidate references is bad news)
   const totalReferencedNodes = xpath.selectElements(

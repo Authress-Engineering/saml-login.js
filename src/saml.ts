@@ -205,12 +205,29 @@ class SamlLogin {
       currentNode.getAttribute("ID") +
       "']" +
       "]";
-    const signatures = xpath.selectElements(currentNode, xpathSigQuery);
+    const strictSignatures = xpath.selectElements(currentNode, xpathSigQuery);
+
+    const xpathSigQueryAlternate =
+      ".//*[" +
+      "local-name(.)='Signature' and " +
+      "namespace-uri(.)='http://www.w3.org/2000/09/xmldsig#' and " +
+      // 1. Ensure exactly one descendant Reference, if there is more than one, then we can't know which one to use.
+      "count(descendant::*[local-name(.)='Reference']) = 1 and " +
+      // 2. Ensure that specific Reference has no URI attribute, if it did then it should have been matched above.
+      "not(descendant::*[local-name(.)='Reference']/@URI)" +
+      "]";
+    const alternateSignatures = xpath.selectElements(currentNode, xpathSigQueryAlternate);
+
+    const signatures = strictSignatures.length && strictSignatures || alternateSignatures;
+
     // This function is expecting to validate exactly one signature, so if we find more or fewer
     //   than that, reject.
     if (signatures.length !== 1) {
       return false;
     }
+
+    const signature = signatures[0];
+
     const xpathTransformQuery =
       ".//*[" +
       "local-name(.)='Transform' and " +
@@ -226,7 +243,7 @@ class SamlLogin {
       throw new Error("Invalid signature, too many transforms");
     }
 
-    const signature = signatures[0];
+    
     return certs && certs.filter(c => c).some((certToCheck) => {
       return validateXmlSignatureForCert(signature, certToPEM(certToCheck), fullXml, currentNode);
     });
@@ -303,7 +320,7 @@ class SamlLogin {
     // * If the source idp encoded ~ as _x007E_ then swap it back, they could be also incorrectly encoding other values, but it doesn't seem like there is a standard on this.
     const inResponseTo = inResponseToRaw?.includes('~') ? inResponseToRaw : inResponseToRaw?.replace(/_x007E_/gi, '~');
     return {
-      issuerEntityId: parsedResult.Response.Issuer[0]._,
+      issuerEntityId: (parsedResult.Response.Issuer || parsedResult.Response.Assertion?.[0]?.Issuer)[0]._,
       applicationEntityId: parsedResult.Response.$.Destination,
       authenticationRequestId: inResponseTo
     };
@@ -321,7 +338,10 @@ class SamlLogin {
     const issuersXml = xpath.selectElements(doc, "/*[local-name()='Response']/*[local-name()='Issuer']");
     const issuerResult = await parseXml2JsFromString(issuersXml.toString());
 
-    const issuer = issuerResult?.Issuer?._ || issuerResult?.Issuer?.[0]?._;
+    const assertionIssuersXml = xpath.selectElements(doc, "/*[local-name()='Response']/*[local-name()='Assertion']/*[local-name()='Issuer']");
+    const assertionIssuerResult = await parseXml2JsFromString(assertionIssuersXml.toString());
+
+    const issuer = issuerResult?.Issuer?._ || issuerResult?.Issuer?.[0]?._ || assertionIssuerResult?.Issuer?._ || assertionIssuerResult?.Issuer?.[0]?._;
     if (options.expectedProviderIssuer && issuer && issuer !== options.expectedProviderIssuer) {
       const error = new Error("Unknown SAML issuer. Expected: " + options.expectedProviderIssuer + " Received: " + issuer);
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment

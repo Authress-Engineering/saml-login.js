@@ -7,10 +7,18 @@
       {
         "type": "node",
         "request": "launch",
-        "name": "Launch Program",
+        "name": "Run saml.ts",
         "program": "${workspaceFolder}/src/saml.ts",
         "preLaunchTask": "tsc: build - tsconfig.json",
         "outFiles": ["${workspaceFolder}/lib/**/*.js"]
+      },
+      {
+        "type": "node-terminal",
+        "request": "launch",
+        "name": "Debug Tests",
+        "preLaunchTask": "tsc: build - tsconfig.json",
+        "outFiles": ["${workspaceFolder}/lib/**/*.js"],
+        "command": "npm test"
       }
     ]
   }
